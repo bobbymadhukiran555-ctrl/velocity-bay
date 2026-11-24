@@ -22,6 +22,8 @@ export function readPad(pad, prev = []) {
     throttle: dz(val(b, 7)),
     brake: dz(val(b, 6)),
     steer: sx,
+    pitch: sy, // left stick forward = dive, back = climb (planes)
+    look: { x: dz(ax[2] ?? 0), y: dz(ax[3] ?? 0) }, // right stick: cockpit look
     stick: { x: sx, y: -sy || 0 },
     held,
     edges,

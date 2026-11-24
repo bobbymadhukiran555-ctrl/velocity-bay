@@ -117,7 +117,7 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
     v.airTime = contact ? 0 : v.airTime + dt;
 
     // Rotation: steer the angular velocity toward what the stick asks for (scaled by airspeed).
-    const pitchIn = (input.handbrake ? 1 : 0) - (input.nitro ? 1 : 0);
+    const pitchIn = Math.max(-1, Math.min(1, (input.pitch ?? 0) + (input.handbrake ? 1 : 0) - (input.nitro ? 1 : 0)));
     if (v.dead) return;
     if (!v.onGround) {
       const bank = -rightW.y; // + = banked right

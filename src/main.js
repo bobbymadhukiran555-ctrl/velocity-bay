@@ -177,8 +177,9 @@ async function boot() {
   // A plane picked away from the airfield starts in the air, flying.
   function airStart() {
     const v = P.vehicle;
-    if (!v || v.spec.kind !== 'plane' || zoneAt(v.pos.x, v.pos.z) === 'airport') return;
-    const p = v.pos, h = v.heading;
+    if (!v || v.spec.kind !== 'plane') return;
+    const p = v.body.translation(), h = v.heading;
+    if (zoneAt(p.x, p.z) === 'airport') return;
     v.reset(p.x, p.z, h, heightAt(p.x, p.z) + 160);
     v.state.thr = 0.8;
     v.setVelocity(Math.cos(h) * v.spec.stall * 1.6, 0, -Math.sin(h) * v.spec.stall * 1.6);
@@ -351,6 +352,7 @@ async function boot() {
     for (const u of G.fleet.list) if (!u.manualLights && u.driverInside) u.state.headlightsOn = dark;
     const pv = P.mode === 'car' ? P.vehicle : null;
     headlights.forEach(l => (l.intensity = pv?.state.headlightsOn ? 260 : 0));
+    G.rig.look = input.look();
     G.rig.update(raw, P.camTarget());
     G.hud.update(raw);
     G.audio.update(raw);

@@ -27,6 +27,14 @@ test('holds and edges: a pressed button is held, edges fire once', () => {
   assert.deepEqual(next.edges, []);
 });
 
+test('left stick y becomes flight pitch and right stick becomes cockpit look', () => {
+  const p = readPad(pad([], [0, -1, 1, -1]));
+  assert.equal(p.pitch, -1); // forward stick = dive
+  assert.deepEqual(p.look, { x: 1, y: -1 });
+});
+
 test('a missing axes array does not throw', () => {
-  assert.doesNotThrow(() => readPad({ buttons: [] }));
+  const p = readPad({ buttons: [] });
+  assert.equal(p.pitch, 0);
+  assert.deepEqual(p.look, { x: 0, y: 0 });
 });

@@ -30,10 +30,9 @@ function surface(c, aniso, strength = 1.5, base = 0.86) {
   const w = c.width, h = c.height, src = c.getContext('2d').getImageData(0, 0, w, h).data;
   const [nc, nctx] = canvas(w, h), [rc, rctx] = canvas(w, h);
   const norm = nctx.createImageData(w, h), rough = rctx.createImageData(w, h);
-  const lum = (x, y) => {
-    const i = (((y + h) % h) * w + ((x + w) % w)) * 4;
-    return (src[i] * 0.3 + src[i + 1] * 0.59 + src[i + 2] * 0.11) / 255;
-  };
+  const lumi = new Float32Array(w * h);
+  for (let i = 0; i < lumi.length; i++) { const j = i * 4; lumi[i] = (src[j] * 0.3 + src[j + 1] * 0.59 + src[j + 2] * 0.11) / 255; }
+  const lum = (x, y) => lumi[((y + h) % h) * w + ((x + w) % w)];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = (y * w + x) * 4;
     const dx = (lum(x + 1, y) - lum(x - 1, y)) * strength, dy = (lum(x, y + 1) - lum(x, y - 1)) * strength;
@@ -47,8 +46,8 @@ function surface(c, aniso, strength = 1.5, base = 0.86) {
 }
 
 // One 100 m city block: 10 m of street on each edge (streets are centred on tile edges), 4 m sidewalks, plaza inside.
-export function cityTileTexture(aniso) {
-  const S = 1024, px = S / 100;
+export function cityTileTexture(aniso, scale = 1) {
+  const S = Math.round(1024 * scale), px = S / 100;
   const [c, ctx] = canvas(S, S);
   speckle(ctx, S, S, '#3b3d40', 90, 30000);
   // Tyre polish and patched repairs on the asphalt.
@@ -88,22 +87,32 @@ export function cityTileTexture(aniso) {
       }
     }
   }
+  if (scale > 1) {
+    // Fine paving grain and worn kerb edges only pay off at high resolution.
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let i = 0; i < 6000; i++) ctx.fillRect(10 * px + Math.random() * 80 * px, 10 * px + Math.random() * 80 * px, Math.random() * px, Math.random() * px);
+    ctx.strokeStyle = 'rgba(230,230,225,0.22)'; ctx.lineWidth = Math.max(1, 0.12 * px);
+    for (const a of [10, 90]) {
+      ctx.beginPath(); ctx.moveTo(a * px, 10 * px); ctx.lineTo(a * px, 90 * px); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10 * px, a * px); ctx.lineTo(90 * px, a * px); ctx.stroke();
+    }
+  }
   return { map: tex(c, { aniso }), ...surface(c, aniso, 1, 0.88) };
 }
 
 // Road ribbon: u across the road (0..1), v along it (1 repeat = 10 m).
-export function roadTexture(aniso) {
-  const W = 512, H = 512;
+export function roadTexture(aniso, scale = 1) {
+  const W = Math.round(512 * scale), H = W, u = W / 512;
   const [c, ctx] = canvas(W, H);
-  speckle(ctx, W, H, '#34363a', 96, 26000);
+  speckle(ctx, W, H, '#34363a', 96, Math.min(120000, Math.round(26000 * u * u)));
   ctx.fillStyle = 'rgba(120,118,112,0.10)';
-  for (let i = 0; i < 22; i++) { const x = Math.random() * W, y = Math.random() * H; ctx.fillRect(x, y, 20 + Math.random() * 90, 6 + Math.random() * 26); }
+  for (let i = 0; i < 22; i++) { const x = Math.random() * W, y = Math.random() * H; ctx.fillRect(x, y, (20 + Math.random() * 90) * u, (6 + Math.random() * 26) * u); }
   // Hairline cracks.
-  ctx.strokeStyle = 'rgba(12,12,14,0.45)'; ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(12,12,14,0.45)'; ctx.lineWidth = Math.max(1, u);
   for (let i = 0; i < 14; i++) {
     let x = Math.random() * W, y = Math.random() * H;
     ctx.beginPath(); ctx.moveTo(x, y);
-    for (let k = 0; k < 6; k++) { x += (Math.random() - 0.5) * 26; y += 12 + Math.random() * 30; ctx.lineTo(x, y); }
+    for (let k = 0; k < 6; k++) { x += (Math.random() - 0.5) * 26 * u; y += (12 + Math.random() * 30) * u; ctx.lineTo(x, y); }
     ctx.stroke();
   }
   // Grime builds up where wheels don't scrub.
@@ -112,30 +121,35 @@ export function roadTexture(aniso) {
   shade.addColorStop(0.84, 'rgba(12,12,13,0)'); shade.addColorStop(1, 'rgba(12,12,13,0.35)');
   ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#d8d4c4';
-  ctx.fillRect(30, 0, 10, H); ctx.fillRect(W - 40, 0, 10, H);
+  ctx.fillRect(30 * u, 0, 10 * u, H); ctx.fillRect(W - 40 * u, 0, 10 * u, H);
   ctx.fillStyle = '#d9b43a';
-  ctx.fillRect(W / 2 - 7, 0, 5, H); ctx.fillRect(W / 2 + 2, 0, 5, H);
+  ctx.fillRect(W / 2 - 7 * u, 0, 5 * u, H); ctx.fillRect(W / 2 + 2 * u, 0, 5 * u, H);
   ctx.fillStyle = 'rgba(232,228,212,0.85)';
-  for (const x of [W * 0.27, W * 0.73]) for (let y = 0; y < H * 0.45; y += 96) ctx.fillRect(x - 3, y, 6, H * 0.45 - y - 24);
+  for (const x of [W * 0.27, W * 0.73]) for (let y = 0; y < H * 0.45; y += 96 * u) ctx.fillRect(x - 3 * u, y, 6 * u, H * 0.45 - y - 24 * u);
   // Worn paint: tiny asphalt-coloured nicks so lines don't look printed.
   ctx.fillStyle = 'rgba(52,54,58,0.5)';
-  for (let i = 0; i < 130; i++) ctx.fillRect(Math.random() * W, Math.random() * H, 1 + Math.random() * 3, 1 + Math.random() * 4);
+  for (let i = 0; i < Math.min(600, Math.round(130 * u * u)); i++) ctx.fillRect(Math.random() * W, Math.random() * H, (1 + Math.random() * 3) * u, (1 + Math.random() * 4) * u);
+  if (scale > 1) {
+    // Fine aggregate catches the light at high resolution.
+    ctx.fillStyle = 'rgba(210,210,205,0.18)';
+    for (let i = 0; i < 14000; i++) ctx.fillRect(Math.random() * W, Math.random() * H, u, u);
+  }
   return { map: tex(c, { aniso }), ...surface(c, aniso, 1.6, 0.9) };
 }
 
-export function runwayTexture(aniso) {
-  const W = 256, H = 256;
+export function runwayTexture(aniso, scale = 1) {
+  const W = Math.round(256 * scale), H = W, u = W / 256;
   const [c, ctx] = canvas(W, H);
-  speckle(ctx, W, H, '#2f3033', 70, 8000);
+  speckle(ctx, W, H, '#2f3033', 70, Math.min(32000, Math.round(8000 * u * u)));
   ctx.fillStyle = '#e9e9e2';
-  ctx.fillRect(8, 0, 4, H); ctx.fillRect(W - 12, 0, 4, H);
-  ctx.fillRect(W / 2 - 3, 0, 6, H * 0.5);
+  ctx.fillRect(8 * u, 0, 4 * u, H); ctx.fillRect(W - 12 * u, 0, 4 * u, H);
+  ctx.fillRect(W / 2 - 3 * u, 0, 6 * u, H * 0.5);
   return tex(c, { aniso });
 }
 
 // Facade: 8 x 16 window cells; one repeat = 24 m wide x 56 m tall. Emissive map lights some windows at night.
-export function facadeTextures(aniso) {
-  const W = 512, H = 1024, cols = 8, rows = 16, cw = W / cols, ch = H / rows;
+export function facadeTextures(aniso, scale = 1) {
+  const W = Math.round(512 * scale), H = 2 * W, cols = 8, rows = 16, cw = W / cols, ch = H / rows;
   const [c, ctx] = canvas(W, H);
   const [e, ectx] = canvas(W, H);
   ctx.fillStyle = '#b3afa6'; ctx.fillRect(0, 0, W, H);
@@ -149,6 +163,12 @@ export function facadeTextures(aniso) {
       ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
       ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x, y, w * 0.45, h);
       if (Math.random() < 0.3) { ctx.fillStyle = 'rgba(220,225,230,0.22)'; ctx.fillRect(x, y + h * 0.35, w, 2); }
+      if (scale > 1) {
+        ctx.fillStyle = 'rgba(20,25,30,0.35)';
+        ctx.fillRect(x + w / 2 - Math.max(1, cw * 0.012), y, Math.max(1, cw * 0.024), h);
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fillRect(x - cw * 0.03, y + h, w + cw * 0.06, Math.max(1, ch * 0.02));
+      }
       if (Math.random() < 0.38) {
         const warm = 200 + Math.random() * 55;
         ectx.fillStyle = `rgb(${warm},${warm * 0.82},${warm * 0.55})`;
@@ -158,8 +178,8 @@ export function facadeTextures(aniso) {
   return { map: tex(c, { aniso }), emissive: tex(e, { aniso }), ...surface(c, aniso, 1.2, 0.55) };
 }
 
-export function detailTexture(aniso) {
-  const S = 256;
+export function detailTexture(aniso, scale = 1) {
+  const S = Math.round(256 * scale);
   const [c, ctx] = canvas(S, S);
   speckle(ctx, S, S, '#d8d8d8', 160, 14000);
   return tex(c, { repeat: [300, 300], aniso });

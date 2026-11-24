@@ -6,6 +6,7 @@ import { sunState } from './logic/daynight.js';
 import * as T from './textures.js';
 
 const rand = (() => { let s = 99; return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296); })();
+let texScale = 1; // set from the graphics quality in buildWorld
 
 function fixedTrimesh(RAPIER, world, geo) {
   const pos = geo.attributes.position.array;
@@ -37,7 +38,7 @@ function terrain(RAPIER, world, aniso) {
     col.set([c.r, c.g, c.b], i * 3);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: T.detailTexture(aniso), roughness: 0.95 }));
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: T.detailTexture(aniso, texScale), roughness: 0.95 }));
   mesh.receiveShadow = true;
   fixedTrimesh(RAPIER, world, geo);
   return mesh;
@@ -98,7 +99,7 @@ function building(b) {
 }
 
 function city(scene, RAPIER, world, aniso, mats) {
-  const tile = T.cityTileTexture(aniso);
+  const tile = T.cityTileTexture(aniso, texScale);
   for (const t of Object.values(tile)) { t.repeat.set(8.2, 8.2); t.offset.set(-0.1, -0.1); }
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(820, 820).rotateX(-Math.PI / 2),
     new THREE.MeshStandardMaterial({ ...tile, roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2 }));
@@ -114,7 +115,7 @@ function city(scene, RAPIER, world, aniso, mats) {
     walls.push(g.walls); roofs.push(g.roof);
     fixedBox(RAPIER, world, b.x, b.h / 2, b.z, b.w / 2, b.h / 2, b.d / 2);
   }
-  const facade = T.facadeTextures(aniso);
+  const facade = T.facadeTextures(aniso, texScale);
   mats.windows = new THREE.MeshStandardMaterial({ map: facade.map, normalMap: facade.normalMap, roughnessMap: facade.roughnessMap, vertexColors: true, emissiveMap: facade.emissive, emissive: 0xffffff, emissiveIntensity: 0, roughness: 1, metalness: 0.35 });
   const w = new THREE.Mesh(mergeGeometries(walls), mats.windows);
   const r = new THREE.Mesh(mergeGeometries(roofs), new THREE.MeshStandardMaterial({ color: 0x55575a, roughness: 0.9 }));
@@ -161,7 +162,7 @@ function trees(scene, RAPIER, world, parks) {
 }
 
 function airport(scene, RAPIER, world, aniso) {
-  const t = T.runwayTexture(aniso);
+  const t = T.runwayTexture(aniso, texScale);
   t.repeat.set(1, 110);
   const runway = new THREE.Mesh(new THREE.PlaneGeometry(60, 1100).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: t, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -2 }));
   runway.position.set(-1010, 0.03, 150); runway.receiveShadow = true; scene.add(runway);
@@ -232,10 +233,11 @@ function stars() {
 
 export function buildWorld(scene, renderer, RAPIER, world, quality) {
   const aniso = renderer.capabilities.getMaxAnisotropy();
+  texScale = quality === 'high' ? 2 : quality === 'low' ? 0.5 : 1;
   const mats = { wet: [] };
   scene.add(terrain(RAPIER, world, aniso));
 
-  const roadMat = new THREE.MeshStandardMaterial({ ...T.roadTexture(aniso), roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -1 });
+  const roadMat = new THREE.MeshStandardMaterial({ ...T.roadTexture(aniso, texScale), roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -1 });
   mats.wet.push(roadMat);
   for (const prof of M.ROAD_PROFILES) {
     const geo = roadRibbon(prof);

@@ -6,8 +6,9 @@ const COCKPIT_TURN = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0
 
 // target: a vehicle, or anything with { mesh, speedKmh, state: { nitroOn, speed }, camDist?, camHeight? }.
 export function createCameraRig(camera) {
-  let mode = 0, yaw = null, shake = 0, kick = 0;
+  let mode = 0, yaw = null, shake = 0, kick = 0, lookX = 0, lookY = 0;
   const pos = new THREE.Vector3(), look = new THREE.Vector3(), fwd = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const lookQ = new THREE.Quaternion(), lookE = new THREE.Euler(0, 0, 0, 'YXZ');
 
   // Pull the camera in front of any wall between it and the target.
   function unblock(x, y, z) {
@@ -31,6 +32,8 @@ export function createCameraRig(camera) {
       return best;
     },
     kick(a) { kick = Math.max(kick, a); },
+    // Right-stick look in the cockpit, in -1..1.
+    set look(v) { lookX = v?.x || 0; lookY = v?.y || 0; },
     update(dt, target) {
       const m = target.mesh, kmh = target.speedKmh, nitro = target.state.nitroOn;
       if (rig.orbit) {
@@ -55,6 +58,10 @@ export function createCameraRig(camera) {
       if (cockpit) {
         camera.position.copy(tmp.set(0.05, 0.58, -0.36).applyQuaternion(m.quaternion).add(m.position));
         camera.quaternion.copy(m.quaternion).multiply(COCKPIT_TURN);
+        if (lookX || lookY) {
+          lookE.set(lookY * 0.55, -lookX * 0.8, 0, 'YXZ');
+          camera.quaternion.multiply(lookQ.setFromEuler(lookE));
+        }
         return;
       }
       if (yaw === null) yaw = carYaw;

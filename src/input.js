@@ -12,7 +12,8 @@ const EDGE = {
 export function createInput(onFirstInput) {
   const held = new Set(), pressed = new Set(), codeTo = {};
   for (const [name, codes] of Object.entries({ ...HOLD, ...EDGE })) for (const c of codes) (codeTo[c] ??= []).push(name);
-  let first = true, enabled = true, padPrev = [];
+  let first = true, enabled = true, padPrev = [], padLook = { x: 0, y: 0 };
+  const NO_LOOK = Object.freeze({ x: 0, y: 0 });
   const padHeld = new Set();
   const isHeld = n => held.has(n) || padHeld.has(n);
   const wake = () => { if (first) { first = false; onFirstInput(); } };
@@ -71,14 +72,16 @@ export function createInput(onFirstInput) {
         padHeld.clear();
         for (const n of pin.held) padHeld.add(n);
         for (const n of pin.edges) pressed.add(n);
-        if (pin.held.length || pin.throttle || pin.brake || pin.steer) wake();
-      } else { padPrev = []; padHeld.clear(); }
+        padLook = pin.look;
+        if (pin.held.length || pin.throttle || pin.brake || pin.steer || pin.pitch || pin.look.x || pin.look.y) wake();
+      } else { padPrev = []; padHeld.clear(); padLook = NO_LOOK; }
       const steer = (held.has('right') ? 1 : 0) - (held.has('left') ? 1 : 0);
       const grip = pin && Math.hypot(pin.stick.x, pin.stick.y) > 0 ? pin.stick : null;
       return {
         throttle: Math.max(held.has('throttle') ? 1 : 0, pin?.throttle ?? 0),
         brake: Math.max(held.has('brake') ? 1 : 0, pin?.brake ?? 0),
         steer: steer || pin?.steer || 0,
+        pitch: pin?.pitch ?? 0,
         handbrake: isHeld('handbrake'),
         nitro: isHeld('nitro'),
         stick: enabled && stick.active ? stick : grip,
@@ -87,6 +90,7 @@ export function createInput(onFirstInput) {
       };
     },
     held: name => isHeld(name),
+    look: () => (enabled ? padLook : NO_LOOK),
     consume(name) { const had = pressed.has(name); pressed.delete(name); return had; },
   };
 }

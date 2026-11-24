@@ -121,7 +121,7 @@ export function createMenus(G) {
   function controls() {
     const rows = [['W / ↑', 'Gas · walk'], ['S / ↓', 'Brake, reverse'], ['A D / ← →', 'Steer · turn'], ['Space', 'Handbrake · jump'], ['Shift', 'Nitro · sprint'],
       ['F', 'Get in / out, use, rob (hold)'], ['K / click', 'Attack · shoot (drive-by in a car)'], ['X / wheel', 'Next weapon'], ['H', 'Horn'], ['G', 'Auto / manual gears'], ['Q / E', 'Shift down / up'],
-      ['Plane', 'W/S throttle · A/D bank · Space climb · Shift dive · S on ground brakes'], ['Gamepad', 'RT gas · LT brake · stick steer · A handbrake · B nitro · X get in/out · Y camera · LB/RB gears · Back map · Start pause'], ['C', 'Camera'], ['L', 'Headlights'], ['N', 'Radio station'], ['R', 'Back on the road'], ['T', 'Skip an hour'], ['M', 'Map'], ['V', 'Car selector'], ['P', 'Photo mode'], ['F2 / `', 'Mod menu'], ['Esc', 'Pause']];
+      ['Plane', 'W/S throttle · A/D bank · Space climb · Shift dive · S on ground brakes'], ['Gamepad', 'RT gas · LT brake · left stick steer/climb-dive · A handbrake · B nitro · X get in/out · Y camera · LB/RB gears · right stick cockpit look · Back map · Start pause'], ['Plane pad', 'Left stick banks and climbs/dives · RT/LT throttle lever · right stick looks around in cockpit'], ['C', 'Camera'], ['L', 'Headlights'], ['N', 'Radio station'], ['R', 'Back on the road'], ['T', 'Skip an hour'], ['M', 'Map'], ['V', 'Car selector'], ['P', 'Photo mode'], ['F2 / `', 'Mod menu'], ['Esc', 'Pause']];
     show('controls', 'Controls', h('dl', { class: 'keys' }, ...rows.flatMap(([k, d]) => [h('dt', {}, k), h('dd', {}, d)])), btn('Back', pause));
   }
 
