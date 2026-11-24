@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Velocity Bay</title>
+  <meta name="description" content="Open-world driving in your browser.">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/",
+      "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/dist/rapier.mjs"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="game"></div>
+
+  <div id="hud">
+    <div id="top-left">
+      <div id="zone">Downtown</div>
+      <div id="clock">08:00</div>
+    </div>
+    <div id="top-right">
+      <div id="money">$500</div>
+      <div id="fps"></div>
+    </div>
+    <canvas id="minimap" width="180" height="180" aria-label="Minimap"></canvas>
+    <div id="dash">
+      <div id="speed-wrap"><span id="speed">0</span><span class="unit">km/h</span></div>
+      <div id="gear-wrap"><span id="gear">1</span><span id="gear-mode">AUTO</span></div>
+      <div class="bar" id="rpm"><div id="rpm-fill"></div></div>
+      <div class="bar" id="nitro" aria-label="Nitro"><div id="nitro-fill"></div></div>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="touch" aria-hidden="true">
+    <div class="pad left">
+      <button data-input="left">◀</button>
+      <button data-input="right">▶</button>
+    </div>
+    <div class="pad right">
+      <button data-input="nitro" class="small">N2O</button>
+      <button data-input="handbrake" class="small">HB</button>
+      <button data-input="camera" class="small">CAM</button>
+      <button data-input="brake">BRAKE</button>
+      <button data-input="throttle" class="gas">GAS</button>
+    </div>
+  </div>
+
+  <div id="help">
+    <h2>Controls</h2>
+    <dl>
+      <dt>W / ↑</dt><dd>Gas</dd>
+      <dt>S / ↓</dt><dd>Brake, then reverse</dd>
+      <dt>A D / ← →</dt><dd>Steer</dd>
+      <dt>Space</dt><dd>Handbrake (drift)</dd>
+      <dt>Shift</dt><dd>Nitro</dd>
+      <dt>G</dt><dd>Auto / manual gears</dd>
+      <dt>Q / E</dt><dd>Shift down / up (manual)</dd>
+      <dt>C</dt><dd>Camera</dd>
+      <dt>L</dt><dd>Headlights</dd>
+      <dt>R</dt><dd>Back on the road</dd>
+      <dt>T</dt><dd>Skip 1 hour</dd>
+      <dt>H</dt><dd>Show / hide this</dd>
+    </dl>
+  </div>
+
+  <div id="loading">
+    <h1>Velocity Bay</h1>
+    <div id="loading-spinner"></div>
+    <p id="loading-status">Loading…</p>
+    <p class="hint">W A S D to drive · Space to drift · Shift for nitro · H for all controls</p>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
