@@ -1,4 +1,5 @@
-// Keyboard, mouse and on-screen touch buttons -> one input state. Edge actions are read once with consume().
+// Keyboard, mouse, gamepad and on-screen touch buttons -> one input state. Edge actions are read once with consume().
+import { readPad } from './logic/gamepad.js';
 const HOLD = {
   throttle: ['KeyW', 'ArrowUp'], brake: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
   handbrake: ['Space'], nitro: ['ShiftLeft', 'ShiftRight'], use: ['KeyF'], horn: ['KeyH'], fire: ['KeyK'],
@@ -11,7 +12,9 @@ const EDGE = {
 export function createInput(onFirstInput) {
   const held = new Set(), pressed = new Set(), codeTo = {};
   for (const [name, codes] of Object.entries({ ...HOLD, ...EDGE })) for (const c of codes) (codeTo[c] ??= []).push(name);
-  let first = true, enabled = true;
+  let first = true, enabled = true, padPrev = [];
+  const padHeld = new Set();
+  const isHeld = n => held.has(n) || padHeld.has(n);
   const wake = () => { if (first) { first = false; onFirstInput(); } };
 
   addEventListener('keydown', e => {
@@ -58,20 +61,32 @@ export function createInput(onFirstInput) {
       canvas.addEventListener('pointerdown', canvasDown);
       canvas.addEventListener('wheel', e => { if (enabled) pressed.add('weapon'); }, { passive: true });
     },
-    set enabled(v) { enabled = v; if (!v) { held.clear(); pressed.clear(); } },
+    set enabled(v) { enabled = v; if (!v) { held.clear(); pressed.clear(); padHeld.clear(); } },
     read() {
+      const pad = enabled ? navigator.getGamepads?.().find(p => p?.connected) : null;
+      let pin = null;
+      if (pad) {
+        pin = readPad(pad, padPrev);
+        padPrev = pin.buttons;
+        padHeld.clear();
+        for (const n of pin.held) padHeld.add(n);
+        for (const n of pin.edges) pressed.add(n);
+        if (pin.held.length || pin.throttle || pin.brake || pin.steer) wake();
+      } else { padPrev = []; padHeld.clear(); }
+      const steer = (held.has('right') ? 1 : 0) - (held.has('left') ? 1 : 0);
+      const grip = pin && Math.hypot(pin.stick.x, pin.stick.y) > 0 ? pin.stick : null;
       return {
-        throttle: held.has('throttle') ? 1 : 0,
-        brake: held.has('brake') ? 1 : 0,
-        steer: (held.has('right') ? 1 : 0) - (held.has('left') ? 1 : 0),
-        handbrake: held.has('handbrake'),
-        nitro: held.has('nitro'),
-        stick: enabled && stick.active ? stick : null,
+        throttle: Math.max(held.has('throttle') ? 1 : 0, pin?.throttle ?? 0),
+        brake: Math.max(held.has('brake') ? 1 : 0, pin?.brake ?? 0),
+        steer: steer || pin?.steer || 0,
+        handbrake: isHeld('handbrake'),
+        nitro: isHeld('nitro'),
+        stick: enabled && stick.active ? stick : grip,
         shiftUp: this.consume('shiftUp'),
         shiftDown: this.consume('shiftDown'),
       };
     },
-    held: name => held.has(name),
+    held: name => isHeld(name),
     consume(name) { const had = pressed.has(name); pressed.delete(name); return had; },
   };
 }

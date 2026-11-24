@@ -23,6 +23,8 @@ Then open http://localhost:5173. Add `?q=low` or `?q=high` to the URL to change 
 
 W/↑ gas · S/↓ brake and reverse · A D steer · Space handbrake/jump · Shift nitro/sprint · F get in/out, use (hold to rob) · K or click shoot · X weapon · H horn · G auto/manual · Q/E shift · C camera · L lights · N radio · R back on the road · T skip an hour · M map · V car selector · P photo mode · F2 mod menu · Esc pause
 
+Gamepad (standard layout): right trigger gas · left trigger brake · left stick steer/walk · A handbrake/jump · B nitro · X get in/out · Y camera · LB/RB shift gears · Back map · Start pause · D-pad up weapon, left lights · L3 horn · R3 back on the road
+
 ## Tests
 
 ```bash
