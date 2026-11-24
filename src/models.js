@@ -199,10 +199,27 @@ export function heliMesh() {
 }
 
 // People: forward = +x, feet at y = 0. Limb geometries pivot at the joint.
+// People: tapered torso, neck, hair, rounded limbs and shoes. Vertex colours (white = tinted by shirt/skin/pants per person)
+// keep it to four instanced meshes. Forward is +x; limbs hang from the origin so they can swing.
+const part = (geo, hex = 0xffffff, sx = 1, sz = 1) => colored(geo.scale(sx, 1, sz), hex);
 export const HUMAN = {
-  torso: new THREE.BoxGeometry(0.24, 0.62, 0.42).translate(0, 1.16, 0),
-  head: new THREE.SphereGeometry(0.13, 10, 8).translate(0, 1.62, 0),
-  arm: new THREE.BoxGeometry(0.11, 0.6, 0.11).translate(0, -0.3, 0),
-  leg: new THREE.BoxGeometry(0.15, 0.86, 0.15).translate(0, -0.43, 0),
+  torso: mergeGeometries([
+    part(new THREE.CylinderGeometry(0.23, 0.16, 0.6, 14).translate(0, 1.16, 0), 0xffffff, 0.6),
+    part(new THREE.CylinderGeometry(0.165, 0.175, 0.16, 14).translate(0, 0.88, 0), 0x3a3a3a, 0.62),
+  ]),
+  head: mergeGeometries([
+    part(new THREE.SphereGeometry(0.125, 14, 10).scale(0.95, 1.12, 0.9).translate(0, 1.64, 0)),
+    part(new THREE.SphereGeometry(0.135, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.55).scale(0.98, 1.1, 0.95).translate(-0.015, 1.665, 0), 0x2a2018),
+    part(new THREE.CylinderGeometry(0.05, 0.057, 0.14, 8).translate(0, 1.5, 0)),
+    part(new THREE.BoxGeometry(0.05, 0.06, 0.04).translate(0.12, 1.62, 0)),
+  ]),
+  arm: mergeGeometries([
+    part(new THREE.CapsuleGeometry(0.052, 0.5, 4, 8).translate(0, -0.3, 0)),
+    part(new THREE.SphereGeometry(0.05, 8, 6).translate(0, -0.6, 0), 0xe8c9b0),
+  ]),
+  leg: mergeGeometries([
+    part(new THREE.CylinderGeometry(0.085, 0.062, 0.8, 10).translate(0, -0.4, 0)),
+    part(new THREE.BoxGeometry(0.27, 0.08, 0.13).translate(0.05, -0.82, 0), 0x1a1a1a),
+  ]),
   hip: 0.86, shoulder: 1.42, hipZ: 0.11, shoulderZ: 0.27,
 };

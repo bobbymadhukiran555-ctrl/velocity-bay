@@ -73,7 +73,7 @@ export function drawIcon(ctx, x, y, [ch, color], r = 8) {
 
 export function createHud(G) {
   const $ = id => document.getElementById(id);
-  const el = Object.fromEntries(['speed', 'gear', 'rpm-fill', 'nitro-fill', 'clock', 'zone', 'money', 'gear-mode', 'toast', 'dash', 'wanted', 'health-fill', 'vhealth-fill', 'weapon', 'objective', 'info', 'banner', 'prompt', 'bag', 'bust', 'bust-fill', 'hit', 'flash', 'fps', 'hud'].map(k => [k, $(k)]));
+  const el = Object.fromEntries(['speed', 'gear', 'rpm-fill', 'nitro-fill', 'clock', 'zone', 'money', 'gear-mode', 'toast', 'dash', 'wanted', 'health-fill', 'vhealth-fill', 'weapon', 'objective', 'info', 'banner', 'prompt', 'bag', 'bust', 'bust-fill', 'hit', 'crosshair', 'hitmark', 'flash', 'fps', 'hud'].map(k => [k, $(k)]));
   const mini = $('minimap'), mctx = mini.getContext('2d');
   const mapImg = renderMapImage();
   let lastZone = '', toastT = 0, bannerT = 0, last = {};
@@ -94,6 +94,7 @@ export function createHud(G) {
     info(t) { set('info', t); el.info.classList.toggle('show', !!t); },
     prompt(t) { set('prompt', t); el.prompt.classList.toggle('show', !!t); },
     hit() { el.hit.classList.remove('on'); void el.hit.offsetWidth; el.hit.classList.add('on'); },
+    hitMark() { el.hitmark.classList.remove('on'); void el.hitmark.offsetWidth; el.hitmark.classList.add('on'); },
     flash() { el.flash.classList.remove('on'); void el.flash.offsetWidth; el.flash.classList.add('on'); },
     update(dt) {
       const P = G.player, v = P.mode === 'car' ? P.vehicle : null;

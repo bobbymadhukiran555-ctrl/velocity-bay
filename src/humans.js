@@ -16,7 +16,7 @@ const M = new THREE.Matrix4(), L = new THREE.Matrix4(), T = new THREE.Matrix4(),
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 
 export function createHumans(G) {
-  const mat = new THREE.MeshStandardMaterial({ roughness: 0.8 });
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.8, vertexColors: true });
   const torso = new THREE.InstancedMesh(HUMAN.torso, mat, MAX), head = new THREE.InstancedMesh(HUMAN.head, mat, MAX);
   const arms = new THREE.InstancedMesh(HUMAN.arm, mat, MAX * 2), legs = new THREE.InstancedMesh(HUMAN.leg, mat, MAX * 2);
   for (const m of [torso, head, arms, legs]) { m.castShadow = true; m.frustumCulled = false; G.scene.add(m); m.count = 0; }

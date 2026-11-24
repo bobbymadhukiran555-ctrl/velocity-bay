@@ -49,10 +49,21 @@
     <div id="toast"></div>
     <div id="banner"></div>
     <div id="hit"></div>
+    <div id="crosshair"><i></i><i></i><i></i><i></i></div>
+    <div id="hitmark">✕</div>
     <div id="flash"></div>
   </div>
 
+  <div id="flightkeys" aria-hidden="true">
+    <b>FLIGHT</b>
+    <span data-k="throttle"><kbd>W</kbd> more throttle</span><span data-k="brake"><kbd>S</kbd> less throttle · brake</span>
+    <span data-k="left"><kbd>A</kbd> bank left</span><span data-k="right"><kbd>D</kbd> bank right</span>
+    <span data-k="handbrake"><kbd>Space</kbd> climb · take off</span><span data-k="nitro"><kbd>Shift</kbd> dive</span>
+    <span data-k="land"><kbd>B</kbd> auto-land assist</span><span><kbd>F</kbd> exit · <kbd>C</kbd> camera</span>
+  </div>
+
   <div id="touch" aria-hidden="true">
+    <div id="lookpad"></div>
     <div class="pad left">
       <button data-input="left" class="drive">◀</button>
       <button data-input="right" class="drive">▶</button>
@@ -63,6 +74,7 @@
       <button data-input="map" class="small">MAP</button>
       <button data-input="camera" class="small">CAM</button>
       <button data-input="radio" class="small">FM</button>
+      <button id="fs" class="small" aria-label="Fullscreen">⛶</button>
     </div>
     <div class="pad right mode mode-car">
       <button data-input="weapon" class="small">WPN</button>
@@ -82,12 +94,8 @@
       <button data-input="throttle" class="gas">GAS</button>
     </div>
     <div class="pad right mode mode-plane">
-      <button data-input="reset" class="small">R</button>
       <button data-input="use interact" class="small">F</button>
-      <div class="stack">
-        <button data-input="handbrake" class="small">CLIMB</button>
-        <button data-input="nitro" class="small">DIVE</button>
-      </div>
+      <button data-input="land" class="small">LAND</button>
       <button data-input="brake" class="small">THR−</button>
       <button data-input="throttle" class="gas">THR+</button>
     </div>

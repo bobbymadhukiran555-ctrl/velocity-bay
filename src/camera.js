@@ -50,7 +50,7 @@ export function createCameraRig(camera) {
       const cockpit = MODES[mode] === 'cockpit' && !target.onFoot;
       fwd.set(1, 0, 0).applyQuaternion(m.quaternion);
       const carYaw = Math.atan2(-fwd.z, fwd.x);
-      const targetFov = cockpit ? 70 + kmh * 0.04 : 60 + Math.min(24, kmh * 0.09) + (nitro ? 8 : 0);
+      const targetFov = (cockpit ? 70 + kmh * 0.04 : 60 + Math.min(24, kmh * 0.09) + (nitro ? 8 : 0)) - (target.aiming ? 10 : 0);
       camera.fov += (targetFov - camera.fov) * Math.min(1, dt * 3);
       camera.updateProjectionMatrix();
       kick = Math.max(0, kick - dt * 1.5);
@@ -63,6 +63,12 @@ export function createCameraRig(camera) {
           lookE.set(lookY * 0.55, -lookX * 0.8, 0, 'YXZ');
           camera.quaternion.multiply(lookQ.setFromEuler(lookE));
         }
+        return;
+      }
+      if (target.fps) { // first person: eyes at head height, looking where yaw/pitch say
+        yaw = null;
+        camera.position.set(m.position.x, m.position.y + 0.72, m.position.z);
+        camera.rotation.set(target.pitch || 0, carYaw - Math.PI / 2, 0, 'YXZ');
         return;
       }
       if (yaw === null) yaw = carYaw;
@@ -78,6 +84,7 @@ export function createCameraRig(camera) {
       camera.position.lerp(pos, Math.min(1, dt * 12)).add(tmp.set((Math.random() - 0.5) * shake + k, (Math.random() - 0.5) * shake + k, k));
       look.set(m.position.x + Math.cos(yaw) * 3, m.position.y + (target.onFoot ? 0.6 : 1.1), m.position.z - Math.sin(yaw) * 3);
       camera.lookAt(look);
+      if (target.onFoot && target.pitch) camera.rotateX(target.pitch);
     },
   };
   return rig;

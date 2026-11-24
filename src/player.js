@@ -19,7 +19,7 @@ export function createPlayer(G, save) {
 
   const human = G.humans.spawn({ role: 'player', x: save.pos.x, z: save.pos.z, shirt: '#b3122e', pants: '#1f2a44', skin: '#e0ac69', visible: false });
   const P = {
-    mode: 'car', vehicle: null, human, health: 100, dead: false, vy: 0, grounded: false, yaw: 0, hurtT: 0,
+    mode: 'car', vehicle: null, human, health: 100, dead: false, vy: 0, grounded: false, yaw: 0, pitch: 0, hurtT: 0,
     weapons: { fists: true, bat: save.weapons.bat, pistol: save.weapons.pistol, smg: save.weapons.smg }, weapon: 'fists',
     lastVehicle: null,
   };
@@ -30,12 +30,17 @@ export function createPlayer(G, save) {
     if (P.mode === 'car' && P.vehicle) { const p = P.vehicle.body.translation(); return { x: p.x, y: p.y, z: p.z, vehicle: P.vehicle }; }
     return { x: human.x, y: human.y + 1, z: human.z };
   };
+  // First person whenever you hold a gun on foot.
+  Object.defineProperty(P, 'fps', { get: () => P.mode === 'foot' && P.weapon !== 'fists' });
   P.camTarget = () => {
     if (P.mode === 'car' && P.vehicle) return P.vehicle;
     footCam.mesh.position.set(human.x, human.y + 0.9, human.z);
     footCam.mesh.quaternion.setFromAxisAngle(Y, P.yaw);
     footCam.speedKmh = Math.abs(human.speed) * 3.6;
     footCam.state.speed = human.speed;
+    footCam.pitch = P.pitch;
+    footCam.aiming = P.aiming;
+    footCam.fps = P.fps;
     return footCam;
   };
 
@@ -118,9 +123,13 @@ export function createPlayer(G, save) {
       if (human.timer <= 0) { human.state = 'walk'; human.fall = 0; }
       return;
     }
-    let sp;
+    let sp, dir = null;
     const st = input.stick, mag = st ? Math.hypot(st.x, st.y) : 0;
-    if (st) { // joystick: walk the way it points, relative to the camera; push it all the way to run
+    if (P.fps && (st || P.look)) { // FPS: look turns you, keys/stick walk and strafe relative to where you face
+      const sx = st ? st.x : input.steer, sy = st ? st.y : input.throttle ? 1 : input.brake ? -1 : 0, m = Math.min(1, Math.hypot(sx, sy));
+      sp = m < 0.15 ? 0 : (input.nitro || (st && m > 0.9) ? 6.8 : 3.3) * (st ? Math.min(1, m / 0.6) : 1);
+      if (sp) dir = { x: (Math.cos(P.yaw) * sy + Math.sin(P.yaw) * sx) / (Math.hypot(sx, sy) || 1), z: (-Math.sin(P.yaw) * sy + Math.cos(P.yaw) * sx) / (Math.hypot(sx, sy) || 1) };
+    } else if (st) { // joystick: walk the way it points, relative to the camera; push it all the way to run
       if (mag > 0.15) {
         const want = (G.camYaw ?? P.yaw) - Math.atan2(st.x, st.y), d = Math.atan2(Math.sin(want - P.yaw), Math.cos(want - P.yaw));
         P.yaw += d * Math.min(1, dt * 10);
@@ -130,9 +139,10 @@ export function createPlayer(G, save) {
       P.yaw -= input.steer * 2.8 * dt;
       sp = input.throttle ? (input.nitro ? 6.8 : 3.3) : input.brake ? -2 : 0;
     }
+    if (input.aim) sp *= 0.6; // focus slows you down like an FPS
     P.vy -= 20 * dt;
     if (P.grounded && input.handbrake && P.vy <= 0) P.vy = 6.2;
-    const desired = { x: Math.cos(P.yaw) * sp * dt, y: P.vy * dt, z: -Math.sin(P.yaw) * sp * dt };
+    const desired = dir ? { x: dir.x * sp * dt, y: P.vy * dt, z: dir.z * sp * dt } : { x: Math.cos(P.yaw) * sp * dt, y: P.vy * dt, z: -Math.sin(P.yaw) * sp * dt };
     cc.computeColliderMovement(col, desired);
     const m = cc.computedMovement(), t = body.translation();
     P.grounded = cc.computedGrounded();

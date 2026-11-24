@@ -60,6 +60,7 @@ export function createCombat(G) {
       const killed = G.humans.hurt(h, dmg, dmg >= 30 ? { x: (dx / L) * 3, y: 2.5, z: (dz / L) * 3 } : null, byPlayer ? 'player' : null);
       G.glow.emit(res.point.x, res.point.y, res.point.z, 0, 0.4, 0, 0.22, 0, 0.1, 0xffb070, 0.5);
       if (byPlayer) {
+        G.hud?.hitMark?.();
         G.wanted.crime(wasCop ? (killed ? 'killCop' : 'hitCop') : wasGang ? 'gang' : killed ? 'killPed' : 'hitPed');
         if (killed) G.onKill?.(h);
       }
@@ -67,6 +68,7 @@ export function createCombat(G) {
       const v = res.vehicle;
       v.damage(dmg * 0.0015);
       if (byPlayer) {
+        G.hud?.hitMark?.();
         if (v.spec.police) G.wanted.crime('hitCop', 0.3);
         if (v.ai?.type === 'lane') { v.ai.speedMul = 1.7; v.ai.ignoreLights = true; }
       }
@@ -120,12 +122,13 @@ export function createCombat(G) {
     let o, yaw;
     if (inCar) { const p = P.vehicle.body.translation(); o = { x: p.x, y: p.y + 1.1, z: p.z }; yaw = P.vehicle.heading; }
     else { o = { x: h.x + Math.cos(P.yaw) * 0.5, y: h.y + 1.35, z: h.z - Math.sin(P.yaw) * 0.5 }; yaw = P.yaw; h.pose = 'aim'; clearTimeout(h.poseT); h.poseT = setTimeout(() => (h.pose = null), 400); }
-    const tgt = autoAim(o, yaw, w.range, 0.7, inCar);
+    const tgt = autoAim(o, yaw, w.range, G.aiming ? 0.3 : 0.7, inCar);
     let d;
     if (tgt) { d = new THREE.Vector3(tgt.x - o.x, tgt.y - o.y, tgt.z - o.z).normalize(); }
     else if (inCar) d = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)); // no target: fire out of the left window
-    else d = new THREE.Vector3(Math.cos(yaw), -0.02, -Math.sin(yaw));
-    d.x += (Math.random() - 0.5) * w.spread * 2; d.y += (Math.random() - 0.5) * w.spread; d.z += (Math.random() - 0.5) * w.spread * 2;
+    else d = new THREE.Vector3(Math.cos(yaw), Math.tan(P.pitch || 0), -Math.sin(yaw));
+    const spread = w.spread * (G.aiming ? 0.35 : 1);
+    d.x += (Math.random() - 0.5) * spread * 2; d.y += (Math.random() - 0.5) * spread; d.z += (Math.random() - 0.5) * spread * 2;
     d.normalize();
     const res = trace(o, d, w.range, h, inCar ? P.vehicle.body : undefined);
     tracer(o, res.point);

@@ -84,7 +84,12 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
     const lv = localVelocity(), fwd = lv.x, M = body.mass(), g = 9.81;
     state.speed = fwd;
     const off = input.hold || v.dead;
-    state.thr = off ? 0 : Math.min(1, Math.max(0, state.thr + (input.throttle - input.brake) * dt * 0.7));
+    // Keys are on/off, so ease them in; sticks already arrive analog.
+    const ease = (k, to) => (state[k] = (state[k] ?? 0) + (to - (state[k] ?? 0)) * Math.min(1, dt * 5));
+    const rollIn = ease('rollIn', input.steer), pitchAxis = ease('pitchAxis', Math.max(-1, Math.min(1, (input.pitch ?? 0) + (input.handbrake ? 1 : 0) - (input.nitro ? 1 : 0))));
+    // Land assist: throttle eases back to 25% while the plane levels out with a gentle descent.
+    const land = !!input.land && !v.onGround;
+    state.thr = off ? 0 : land ? state.thr + (0.25 - state.thr) * Math.min(1, dt) : Math.min(1, Math.max(0, state.thr + (input.throttle - input.brake) * dt * 0.7));
     state.throttle = state.thr;
     state.rpm = IDLE + state.thr * 5200;
     state.nitroOn = false; state.slip = 0;
@@ -117,22 +122,23 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
     v.airTime = contact ? 0 : v.airTime + dt;
 
     // Rotation: steer the angular velocity toward what the stick asks for (scaled by airspeed).
-    const pitchIn = Math.max(-1, Math.min(1, (input.pitch ?? 0) + (input.handbrake ? 1 : 0) - (input.nitro ? 1 : 0)));
+    const pitchIn = pitchAxis;
     if (v.dead) return;
     if (!v.onGround) {
       const bank = -rightW.y; // + = banked right
       // Fly to an angle, not a rate: bank up to ~55°, climb ~28°, dive ~32°, and drift back to level when you let go.
       const clamp1 = x => Math.max(-1.6, Math.min(1.6, x));
-      const wx = clamp1((input.steer * 0.82 - bank) * 3);
+      const wx = clamp1((rollIn * 0.82 - bank) * 3);
       const pitch = Math.asin(Math.max(-1, Math.min(1, fwdW.y)));
-      const wz = clamp1(((pitchIn > 0 ? 0.5 : pitchIn < 0 ? -0.55 : pitch * 0.6) - pitch) * 2.2);
+      const aim = land ? -0.1 : pitchIn * (pitchIn > 0 ? 0.5 : 0.55) + (1 - Math.abs(pitchIn)) * pitch * 0.6;
+      const wz = clamp1((aim - pitch) * 2.2);
       const turn = -bank * 1.35 * air;
-      wl.set(wx * air + 0.3 * input.steer * (1 - air), 0, wz * air).applyQuaternion(tmpQ);
+      wl.set(wx * air + 0.3 * rollIn * (1 - air), 0, wz * air).applyQuaternion(tmpQ);
       wl.y += turn;
       if (air < 0.85) wl.addScaledVector(rightW, -(1 - air) * 0.6); // stall: the nose drops
       const av = body.angvel(), b = Math.min(1, dt * 6);
       body.setAngvel({ x: av.x + (wl.x - av.x) * b, y: av.y + (wl.y - av.y) * b, z: av.z + (wl.z - av.z) * b }, true);
-    } else if (pitchIn > 0 && q > 0.8) { // rotate for take-off
+    } else if (pitchIn > 0.2 && q > 0.8) { // rotate for take-off
       const av = body.angvel(); wl.copy(rightW).multiplyScalar(0.45);
       body.setAngvel({ x: av.x + wl.x * dt * 8, y: av.y, z: av.z + wl.z * dt * 8 }, true);
     }

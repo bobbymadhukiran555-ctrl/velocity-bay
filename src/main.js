@@ -240,6 +240,22 @@ async function boot() {
 
   const resetToRoad = () => { if (!P.vehicle) return; const p = P.vehicle.body.translation(), r = nearestRoadPoint(p.x, p.z); P.vehicle.reset(r.x, r.z, r.heading); G.rig.snap(); };
   let stuckTime = 0, lastDrive = null;
+  // Fullscreen (Android Chrome, desktop). iPhone Safari has no fullscreen API, so the button just does nothing there.
+  G.toggleFullscreen = () => {
+    const d = document;
+    if (d.fullscreenElement) return d.exitFullscreen();
+    d.documentElement.requestFullscreen?.().then(() => screen.orientation?.lock?.('landscape').catch(() => {})).catch(() => {});
+  };
+  const fsBtn = document.getElementById('fs');
+  if (fsBtn) fsBtn.onclick = G.toggleFullscreen;
+  // First-person gun in your hands: kicks back when you fire.
+  const viewGun = new THREE.Group(), grip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, 0.08), new THREE.MeshStandardMaterial({ color: 0x2a1d14 }));
+  grip.position.set(0, -0.12, 0.14);
+  viewGun.add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, 0.42), new THREE.MeshStandardMaterial({ color: 0x1b1b1d, metalness: 0.6, roughness: 0.4 })),
+    grip);
+  viewGun.visible = false; camera.add(viewGun); scene.add(camera);
+  let recoil = 0;
+  const flightKeys = [...document.querySelectorAll('#flightkeys [data-k]')];
 
   function edges() {
     if (G.menus.open) return;
@@ -290,6 +306,27 @@ async function boot() {
       : vehicleKind === 'plane' ? 'plane' : vehicleKind === 'bike' ? 'bike' : 'car';
     document.body.classList.toggle('on-foot', P.mode === 'foot');
     for (const m of ['car', 'bike', 'plane', 'foot', 'shoot']) document.body.classList.toggle(`mode-${m}`, m === controlMode);
+    if (controlMode === 'plane') for (const el of flightKeys) el.classList.toggle('on', input.held(el.dataset.k));
+    P.aiming = input.held('aim') && P.mode === 'foot';
+    const locked = P.mode === 'foot' && input.pointerLocked();
+    P.look = locked;
+    recoil = Math.max(0, recoil - raw * 7);
+    viewGun.visible = P.fps && (P.weapon === 'pistol' || P.weapon === 'smg');
+    viewGun.scale.set(0.32, 0.32, P.weapon === 'smg' ? 0.5 : 0.32);
+    viewGun.position.set(0.16 - recoil * 0.004, -0.15 + recoil * 0.008, -0.55 + recoil * 0.04);
+    viewGun.rotation.y = 0.06;
+    viewGun.rotation.x = recoil * 0.12;
+    G.aiming = P.fps;
+    if (P.mode === 'foot') P.human.visible = !P.fps;
+    if (P.fps && !G.fpsHint && matchMedia('(pointer: fine)').matches) { G.fpsHint = true; G.hud.toast('Click the game to aim with the mouse · Esc releases it', 4); }
+    document.body.classList.toggle('aiming', locked || P.fps);
+    document.body.classList.toggle('fps', P.fps);
+    if (!locked && input.pointerLocked()) document.exitPointerLock?.();
+    const md = input.mouseDelta();
+    if (P.mode === 'foot' && (locked || md.touch) && (md.x || md.y)) {
+      P.yaw -= md.x * 0.0022;
+      P.pitch = Math.max(-1, Math.min(1, P.pitch - md.y * 0.0022));
+    }
     const dt = G.paused ? 0 : raw * G.timeScale * (G.mods.slowmo ? 0.35 : 1);
     const driven = P.mode === 'car' && P.vehicle && !G.paused ? P.vehicle : null;
     if (driven) {
@@ -303,6 +340,7 @@ async function boot() {
       acc += dt;
       while (acc >= STEP && n < 5) {
         const inp = input.read();
+        if (controlMode === 'plane' && inp.stick?.active) { inp.steer = inp.stick.x; inp.pitch = inp.stick.y; } // touch stick: bank + climb/dive
         P.fixed(STEP, inp);
         G.fleet.fixed(STEP, G.freezePlayer ? HOLD : inp);
         world.step();
@@ -322,7 +360,7 @@ async function boot() {
       G.pois.action = G.pois.update(dt, { use: input.held('use') });
       if ((input.held('fire') || input.held('mouseFire')) && !P.dead) {
         if (!G.settings.crime && !G.mods.neverWanted && P.weapon !== 'fists') { if (!G.noGunToast) { G.hud.toast('Weapons are off in racing-only mode'); G.noGunToast = true; } }
-        else G.combat.playerFire();
+        else { const ammo = P.weapons[P.weapon]; G.combat.playerFire(); if (P.weapons[P.weapon] < ammo || G.mods.infAmmo) recoil = 1; }
       }
       const v = P.vehicle;
       if (v) v.state.horn = input.held('horn') && P.mode === 'car';

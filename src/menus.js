@@ -61,6 +61,7 @@ export function createMenus(G) {
         btn('Controls', controls),
         btn('Mod menu  (F2)', mods),
         btn('Photo mode  (P)', () => { close(); photo(); }),
+        document.documentElement.requestFullscreen ? btn('Fullscreen', () => G.toggleFullscreen()) : null,
         btn('Save code', saveCode),
         G.activity ? btn(`Quit: ${G.activity.name}`, () => { G.activities.cancel('You quit'); close(); }, 'danger') : null,
       ),
@@ -121,7 +122,7 @@ export function createMenus(G) {
   function controls() {
     const rows = [['W / ↑', 'Gas · walk'], ['S / ↓', 'Brake, reverse'], ['A D / ← →', 'Steer · turn'], ['Space', 'Handbrake · jump'], ['Shift', 'Nitro · sprint'],
       ['F', 'Get in / out, use, rob (hold)'], ['K / click', 'Attack · shoot (drive-by in a car)'], ['X / wheel', 'Next weapon'], ['H', 'Horn'], ['G', 'Auto / manual gears'], ['Q / E', 'Shift down / up'],
-      ['Plane', 'W/S throttle · A/D bank · Space climb · Shift dive · S on ground brakes'], ['Gamepad', 'RT gas · LT brake · left stick steer/climb-dive · A handbrake · B nitro · X get in/out · Y camera · LB/RB gears · right stick cockpit look · Back map · Start pause'], ['Plane pad', 'Left stick banks and climbs/dives · RT/LT throttle lever · right stick looks around in cockpit'], ['Touch', 'Buttons change by mode: car, bike, plane, on foot and shooting (big FIRE)'], ['C', 'Camera'], ['L', 'Headlights'], ['N', 'Radio station'], ['R', 'Back on the road'], ['T', 'Skip an hour'], ['M', 'Map'], ['V', 'Car selector'], ['P', 'Photo mode'], ['F2 / `', 'Mod menu'], ['Esc', 'Pause']];
+      ['Plane', 'W/S throttle · A/D bank · Space climb · Shift dive · B auto-land · S on ground brakes (key guide shows on screen)'], ['Plane (touch)', 'Left stick: bank and climb/dive · THR+/THR− · LAND assist · F exit'], ['Gamepad', 'RT gas · LT brake · left stick steer/climb-dive · A handbrake · B nitro · X get in/out · Y camera · LB/RB gears · right stick cockpit look · Back map · Start pause'], ['Plane pad', 'Left stick banks and climbs/dives · RT/LT throttle lever · right stick looks around in cockpit'], ['Touch', 'Buttons change by mode: car, bike, plane, on foot and shooting (big FIRE)'], ['C', 'Camera'], ['L', 'Headlights'], ['N', 'Radio station'], ['R', 'Back on the road'], ['T', 'Skip an hour'], ['M', 'Map'], ['V', 'Car selector'], ['P', 'Photo mode'], ['F2 / `', 'Mod menu'], ['Esc', 'Pause']];
     show('controls', 'Controls', h('dl', { class: 'keys' }, ...rows.flatMap(([k, d]) => [h('dt', {}, k), h('dd', {}, d)])), btn('Back', pause));
   }
 
