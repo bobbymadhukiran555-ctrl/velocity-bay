@@ -67,6 +67,7 @@ export function vehicleParts(id) {
     if (p.box) { const top = Math.max(p.roof, p.tail); paint.push(box(c0 - p.deckR * h + 0.02, top - p.belt, m.width - 0.1, (c0 + p.deckR * h) / 2, (top + p.belt) / 2, 0)); }
     if (p.spoiler) paint.push(box(0.3, 0.05, m.width - 0.1, -h + 0.25, p.tail + 0.25, 0), box(0.06, 0.25, 0.06, -h + 0.3, p.tail + 0.12, -0.6), box(0.06, 0.25, 0.06, -h + 0.3, p.tail + 0.12, 0.6));
     const trim = [colored(glass, 0x0b1118),
+      colored(box(0.24, 0.14, m.width * 0.78, c3 - 0.08, p.belt + 0.06, 0), 0x101418), // dashboard
       colored(box(0.08, 0.16, m.width * 0.42, h + 0.01, p.nose - 0.12, 0), 0x0d0d0f),
       colored(box(0.1, 0.12, m.width - 0.1, h - 0.02, p.sill + 0.04, 0), 0x18191b),
       colored(box(0.1, 0.12, m.width - 0.1, -h + 0.03, p.sill + 0.05, 0), 0x18191b),
@@ -78,6 +79,7 @@ export function vehicleParts(id) {
       heads: mergeGeometries([-lz, lz].map(z => box(0.06, 0.1, 0.36, h + 0.01, ly, z))),
       tails: mergeGeometries([-lz, lz].map(z => box(0.06, 0.09, 0.4, -h + 0.03, p.tail - 0.14, z))),
       lampY: ly, roof: p.roof, impactY: (p.sill + p.belt) / 2,
+      cockpit: { x: Math.min(c3 - 0.18, m.axles[0] - 0.7), y: Math.max(p.roof - 0.16, 1.3) - bodyY, z: -m.width * 0.22 },
     };
     if (m.police) {
       parts.barRed = box(0.3, 0.12, 0.5, (c1 + c2) / 2, p.roof + 0.1, -0.28);
@@ -107,6 +109,7 @@ function bikeParts(m, bodyY) {
     heads: box(0.05, 0.1, 0.14, 0.8, 0.9, 0),
     tails: box(0.05, 0.06, 0.16, -0.85, 0.95, 0),
     lampY: 0.9, roof: 1.1, impactY: 0.7, R,
+    cockpit: { x: -0.05, y: 1.05 - bodyY, z: 0 },
   };
 }
 
@@ -136,6 +139,7 @@ function planeParts(m) {
     prop: jet ? null : mergeGeometries([colored(box(0.08, 2.0, 0.16, 0, 0, 0), 0x1a1a1a), colored(box(0.08, 0.16, 2.0, 0, 0, 0), 0x1a1a1a), colored(new THREE.ConeGeometry(0.22, 0.4, 10).rotateZ(-Math.PI / 2).translate(0.13, 0, 0), 0xd0d0d0)]),
     propAt: [h + 0.32, fy],
     lampY: ly, roof: fy + r, impactY: fy,
+    cockpit: { x: h * 0.35, y: fy + 0.35 - (m.wheelR + 0.28), z: 0 },
   };
 }
 

@@ -56,7 +56,8 @@ export function createCameraRig(camera) {
       kick = Math.max(0, kick - dt * 1.5);
       const k = (Math.random() - 0.5) * kick * 0.6;
       if (cockpit) {
-        camera.position.copy(tmp.set(0.05, 0.58, -0.36).applyQuaternion(m.quaternion).add(m.position));
+        const c = target.view?.parts?.cockpit;
+        camera.position.copy((c ? tmp.set(c.x, c.y, c.z) : tmp.set(0.05, 0.58, -0.36)).applyQuaternion(m.quaternion).add(m.position));
         camera.quaternion.copy(m.quaternion).multiply(COCKPIT_TURN);
         if (lookX || lookY) {
           lookE.set(lookY * 0.55, -lookX * 0.8, 0, 'YXZ');
