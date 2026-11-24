@@ -86,6 +86,7 @@ export const ROADS = [
   { name: 'mountain-pass', kind: 'road', width: 14, points: smooth(P([0, -605], [0, -720], [-110, -800], [-60, -900], [110, -950], [230, -1040], [90, -1110], [-150, -1085], [-320, -1000], [-430, -880], [-560, -770], [-660, -700])) },
   { name: 'desert-road', kind: 'road', width: 14, points: smooth(P([-660, -700], [-790, -640], [-950, -560], [-1050, -440], [-960, -360])) },
   { name: 'airport-road', kind: 'road', width: 16, points: P([-605, 0], [-760, 0], [-900, 0]) },
+  { name: 'coaster-access', kind: 'road', width: 14, points: P([-900, 0], [-900, 180]) },
   { name: 'coast-connector', kind: 'road', width: 16, points: P([0, 605], [0, 700]) },
   { name: 'coast-road', kind: 'road', width: 16, points: smooth(P([-700, 700], [-350, 712], [0, 700], [350, 712], [690, 695], [800, 620])) },
   { name: 'docks-road', kind: 'road', width: 16, points: P([605, 0], [800, 0], [1000, 0]) },

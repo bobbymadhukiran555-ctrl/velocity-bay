@@ -1,7 +1,7 @@
 // Every overlay screen: pause menu, settings, controls, car selector (garage / dealer), arms shop, mod menu,
 // full map with waypoints, photo mode and save codes. Plain DOM.
 import { MODELS, MODEL_IDS, UPGRADES, nextUpgradeCost, statBars } from './logic/vehicles.js';
-import { EVENTS, MISSIONS } from './logic/places.js';
+import { EVENTS, MISSIONS, STUNT_IDS, SPEED_CAMS } from './logic/places.js';
 import { WEATHER_NAMES } from './logic/weather.js';
 import { ACHIEVEMENTS } from './logic/achievements.js';
 import { MAP_HALF } from './logic/map.js';
@@ -78,7 +78,7 @@ export function createMenus(G) {
       ...EVENTS.map(e => h('div', { class: 'row' },
         h('span', {}, `${e.name}`, h('small', {}, ` ${e.type}${G.save.best[e.id] !== undefined ? ` · best ${e.type === 'drift' ? Math.round(G.save.best[e.id]).toLocaleString() : G.save.best[e.id].toFixed(2) + ' s'}` : ''}`)),
         btn('Go there', () => tp(e.start.x, e.start.z, e.start.heading), '', G.wanted.stars > 0 || !!G.activity))),
-      h('p', { class: 'note' }, `Stunt jumps found: ${G.save.stunts.length}/6 · Speed camera records: ${Object.keys(G.save.best).filter(k => k.startsWith('cam')).length}/6`),
+      h('p', { class: 'note' }, `Stunt jumps found: ${G.save.stunts.length}/${STUNT_IDS.length} · Speed camera records: ${Object.keys(G.save.best).filter(k => k.startsWith('cam')).length}/${SPEED_CAMS.length}`),
       btn('Back', pause));
   }
 
@@ -86,7 +86,7 @@ export function createMenus(G) {
     const s = G.save.stats;
     const rows = [
       ['Distance driven', `${(s.distance / 1000).toFixed(1)} km`], ['Top speed', `${Math.round(s.topSpeed)} km/h`],
-      ['Stunt jumps landed', String(s.jumps)], ['Unique jumps found', `${G.save.stunts.length}/6`],
+      ['Stunt jumps landed', String(s.jumps)], ['Unique jumps found', `${G.save.stunts.length}/${STUNT_IDS.length}`],
       ['Events won', String(s.events)], ['People taken down', String(s.kills)],
       ['Robberies', String(s.robberies)], ['Total earned', `$${Math.round(s.earned).toLocaleString()}`],
     ];

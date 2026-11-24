@@ -66,7 +66,8 @@ export const RAMPS = [
   { id: 'ramp-4', x: 480, z: 300, heading: N },
   { id: 'ramp-5', x: -300, z: -500, heading: W },
   { id: 'ramp-6', x: 835, z: 400, heading: S },
-].map(r => ({ ...r, len: r.stunt ? 14 : 11, width: r.stunt ? 7 : 6, height: r.stunt ? 3.2 : 2.2 }));
+  { id: 'stunt-skyloop', x: -800, z: 130, heading: E, stunt: true, len: 34, width: 13, height: 7 },
+].map(r => ({ ...r, len: r.len ?? (r.stunt ? 14 : 11), width: r.width ?? (r.stunt ? 7 : 6), height: r.height ?? (r.stunt ? 3.2 : 2.2) }));
 export const STUNT_IDS = RAMPS.filter(r => r.stunt).map(r => r.id);
 
 export const GANGS = [

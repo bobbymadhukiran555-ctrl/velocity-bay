@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { buildWorld } from './world.js';
+import { buildCoaster } from './coaster.js';
 import { createInput } from './input.js';
 import { createCameraRig } from './camera.js';
 import { createHud } from './hud.js';
@@ -73,6 +74,7 @@ async function boot() {
   setStatus('Building Velocity Bay…');
   await frameYield();
   const env = buildWorld(scene, renderer, RAPIER, world, quality);
+  buildCoaster(scene, RAPIER, world);
   G.smoke = createParticles(scene, 900, false);
   G.glow = createParticles(scene, 600, true);
   G.skids = createSkids(scene);
