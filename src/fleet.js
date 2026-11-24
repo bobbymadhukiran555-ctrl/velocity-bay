@@ -2,13 +2,16 @@
 import { createVehicle } from './vehicle.js';
 import { aiInput, laneAI, HOLD } from './ai.js';
 import { SAMPLES, along, GRAPH } from './logic/roadgraph.js';
-import { TRAFFIC_MODELS, TRAFFIC_COLORS } from './logic/vehicles.js';
+import { TRAFFIC_MODELS, TRAFFIC_COLORS, MODELS } from './logic/vehicles.js';
 import { wetGrip } from './logic/weather.js';
 import { vehicleFx } from './fx.js';
 import { CITY } from './logic/map.js';
 
 const pick = a => a[Math.floor(Math.random() * a.length)];
-const KEEP = new Set(['player', 'mission', 'mission-target', 'racer', 'owned']);
+const KEEP = new Set(['player', 'mission', 'mission-target', 'racer', 'owned', 'airfield']);
+const paintFor = m => MODELS[m].paint ?? pick(TRAFFIC_COLORS);
+// Free planes waiting at the north end of the runway.
+const HANGAR = [{ model: 'sparrow', x: -1000, z: 600, color: '#e8e8e6' }, { model: 'falcon', x: -1022, z: 590, color: '#d7dde4' }];
 
 export function createFleet(G) {
   const list = [], byBody = new Map();
@@ -41,7 +44,8 @@ export function createFleet(G) {
     for (let tries = 0; tries < 12; tries++) {
       const s = pick(SAMPLES), sp = spotOn(s), d = Math.hypot(sp.x - P.x, sp.z - P.z);
       if (d < 110 || d > 250 || (G.inView(sp.x, sp.z) && d < 190) || !clear(sp.x, sp.z, 16)) continue;
-      const v = spawn({ model: police ? 'patrol' : pick(TRAFFIC_MODELS), color: police ? '#f2f2f2' : pick(TRAFFIC_COLORS), pos: { x: sp.x, y: 0, z: sp.z }, heading: sp.heading, role: police ? 'police' : 'traffic' });
+      const model = police ? 'patrol' : pick(TRAFFIC_MODELS);
+      const v = spawn({ model, color: police ? '#f2f2f2' : paintFor(model), pos: { x: sp.x, y: 0, z: sp.z }, heading: sp.heading, role: police ? 'police' : 'traffic' });
       v.reset(sp.x, sp.z, sp.heading);
       v.ai = laneAI(s.edge, s.dir, s.d, { patrol: police });
       const fwd = 0.7 * s.edge.speed;
@@ -57,7 +61,8 @@ export function createFleet(G) {
       if (s.edge.kind !== 'street') continue;
       const sp = spotOn(s, 2.8), d = Math.hypot(sp.x - P.x, sp.z - P.z);
       if (d < 70 || d > 200 || (G.inView(sp.x, sp.z) && d < 150) || !clear(sp.x, sp.z, 9)) continue;
-      const v = spawn({ model: pick(TRAFFIC_MODELS), color: pick(TRAFFIC_COLORS), pos: { x: sp.x, y: 0, z: sp.z }, heading: sp.heading, role: 'parked' });
+      const model = pick(TRAFFIC_MODELS);
+      const v = spawn({ model, color: paintFor(model), pos: { x: sp.x, y: 0, z: sp.z }, heading: sp.heading, role: 'parked' });
       v.reset(sp.x, sp.z, sp.heading);
       return v;
     }
@@ -84,6 +89,10 @@ export function createFleet(G) {
     if (traffic < want - 4) spawnTraffic();
     const inCity = Math.abs(P.x) < CITY.max + 100 && Math.abs(P.z) < CITY.max + 100;
     if (inCity && parked < 6 * Math.min(1, G.settings.traffic + 0.3)) spawnParked();
+    for (const h of HANGAR) if (!list.some(v => v.hangar === h) && Math.hypot(P.x - h.x, P.z - h.z) > 250) {
+      const v = spawn({ model: h.model, color: h.color, pos: { x: h.x, y: 2, z: h.z }, heading: Math.PI / 2, role: 'airfield' });
+      v.reset(h.x, h.z, Math.PI / 2); v.hangar = h; v.driverInside = false;
+    }
     if (G.wanted.stars === 0 && patrols === 0 && Math.random() < 0.08) spawnTraffic(true);
     // Too many leftover cars: drop the farthest abandoned one.
     const left = list.filter(v => v.role === 'abandoned');

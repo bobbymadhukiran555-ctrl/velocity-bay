@@ -146,6 +146,10 @@ body.ready #loading-status { animation: pulse 1.6s infinite; }
   #touch .top button.small { width: 46px; height: 40px; border-radius: 10px; }
   #touch button.gas { width: 90px; height: 90px; background: rgba(40,160,70,.45); }
   #touch button.on { background: rgba(255,210,74,.55); }
+  #touch .foot, body.on-foot #touch .drive { display: none; }
+  body.on-foot #touch .foot { display: block; }
+  #stick { position: relative; width: 150px; height: 150px; border-radius: 50%; border: 2px solid rgba(255,255,255,.45); background: rgba(0,0,0,.3); touch-action: none; }
+  #stick .knob { position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; margin: -31px 0 0 -31px; border-radius: 50%; background: rgba(255,255,255,.55); pointer-events: none; }
   #mini-wrap { width: 120px; top: 60px; left: 16px; bottom: auto; }
   #minimap { width: 120px; height: 120px; }
   #dash { bottom: auto; top: 60px; right: 16px; width: 170px; }

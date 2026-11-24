@@ -33,6 +33,21 @@ export function createInput(onFirstInput) {
     el.addEventListener('pointerdown', down);
     for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) el.addEventListener(ev, up);
   }
+  // Touch joystick (on foot): x = right, y = forward, each -1..1.
+  const stick = { x: 0, y: 0, active: false }, stickEl = document.getElementById('stick'), knob = stickEl?.querySelector('.knob');
+  if (stickEl) {
+    const move = e => {
+      const r = stickEl.getBoundingClientRect(), R = r.width / 2;
+      let x = (e.clientX - r.left - R) / R, y = -(e.clientY - r.top - R) / R;
+      const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+      stick.x = x; stick.y = y;
+      knob.style.transform = `translate(${x * R * 0.6}px, ${-y * R * 0.6}px)`;
+    };
+    const end = () => { stick.active = false; stick.x = stick.y = 0; knob.style.transform = ''; };
+    stickEl.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); wake(); stick.active = true; move(e); try { stickEl.setPointerCapture(e.pointerId); } catch {} });
+    stickEl.addEventListener('pointermove', e => { if (stick.active) move(e); });
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) stickEl.addEventListener(ev, end);
+  }
   addEventListener('pointerdown', wake);
   // Mouse: left button fires, wheel changes weapon (only on the game canvas).
   const canvasDown = e => { if (e.button === 0 && e.pointerType === 'mouse' && enabled) held.add('mouseFire'); };
@@ -51,6 +66,7 @@ export function createInput(onFirstInput) {
         steer: (held.has('right') ? 1 : 0) - (held.has('left') ? 1 : 0),
         handbrake: held.has('handbrake'),
         nitro: held.has('nitro'),
+        stick: enabled && stick.active ? stick : null,
         shiftUp: this.consume('shiftUp'),
         shiftDown: this.consume('shiftDown'),
       };

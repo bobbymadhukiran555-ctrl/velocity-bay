@@ -41,7 +41,7 @@ export function parseSave(raw) {
   if (num(raw.heading)) d.heading = raw.heading;
   if (num(raw.time) && raw.time >= 0 && raw.time < 1) d.time = raw.time;
   if (Array.isArray(raw.garage)) {
-    const cars = raw.garage.map(car).filter(Boolean).slice(0, 12);
+    const cars = raw.garage.map(car).filter(Boolean).slice(0, 24);
     if (cars.length) d.garage = cars;
   } else if (color(raw.color)) d.garage[0].color = raw.color; // v1 save: one car, its colour
   d.current = int(raw.current, 0, d.garage.length - 1);

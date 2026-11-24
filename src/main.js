@@ -18,7 +18,7 @@ import { createActivities } from './activities.js';
 import { createMenus } from './menus.js';
 import { HOLD } from './ai.js';
 import { loadSave, writeSave } from './logic/save.js';
-import { nearestRoadPoint, SEA_LEVEL, heightAt } from './logic/map.js';
+import { nearestRoadPoint, SEA_LEVEL, heightAt, zoneAt } from './logic/map.js';
 import { DAY_LENGTH_S } from './logic/daynight.js';
 import { createWeather } from './logic/weather.js';
 import { createWanted, penalty } from './logic/wanted.js';
@@ -164,8 +164,19 @@ async function boot() {
       persist();
     }, 3500);
   }
+  // A plane picked away from the airfield starts in the air, flying.
+  function airStart() {
+    const v = P.vehicle;
+    if (!v || v.spec.kind !== 'plane' || zoneAt(v.pos.x, v.pos.z) === 'airport') return;
+    const p = v.pos, h = v.heading;
+    v.reset(p.x, p.z, h, heightAt(p.x, p.z) + 160);
+    v.state.thr = 0.8;
+    v.setVelocity(Math.cos(h) * v.spec.stall * 1.6, 0, -Math.sin(h) * v.spec.stall * 1.6);
+    G.rig.snap();
+    G.hud.toast('Airborne! Space climb · Shift dive · A/D turn · W/S throttle', 4);
+  }
   G.game = {
-    persist, snapshot, swapVehicle,
+    persist, snapshot, swapVehicle, airStart,
     wasted: () => respawn(RESPAWN.wasted, 'WASTED'),
     busted: () => respawn(RESPAWN.busted, 'BUSTED'),
     drowned: () => respawn(RESPAWN.wasted, 'WASTED'),
@@ -180,6 +191,7 @@ async function boot() {
     spawnForPlayer(model) {
       const owned = save.garage.findIndex(c => c.model === model);
       swapVehicle(model, owned >= 0 ? save.garage[owned].color : '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0'), owned >= 0 ? save.garage[owned].up : undefined, owned >= 0 ? owned : undefined);
+      airStart();
     },
     load(s) { writeSave(localStorage, s); location.reload(); },
   };
@@ -259,6 +271,8 @@ async function boot() {
     input.enabled = !G.menus.open;
     edges();
     camera.getWorldDirection(camDir);
+    G.camYaw = Math.atan2(-camDir.z, camDir.x);
+    document.body.classList.toggle('on-foot', P.mode === 'foot');
     const dt = G.paused ? 0 : raw * G.timeScale * (G.mods.slowmo ? 0.35 : 1);
     let n = 0;
     if (!G.paused) {

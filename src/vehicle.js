@@ -13,7 +13,7 @@ const tmpQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), tmpV2 = new THR
 const yawQ = h => ({ x: 0, y: Math.sin(h / 2), z: 0, w: Math.cos(h / 2) });
 
 export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, heading = 0, up = NO_UPGRADES, role = 'traffic' }) {
-  const { RAPIER, world, scene } = G, spec = MODELS[model], bike = spec.kind === 'bike';
+  const { RAPIER, world, scene } = G, spec = MODELS[model], bike = spec.kind === 'bike', plane = spec.kind === 'plane';
   const k = spec.mass / 1300, R = spec.wheelR;
   const view = buildVehicleMesh(model, color);
   scene.add(view.root);
@@ -27,7 +27,7 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
   const colliders = [
     world.createCollider(RAPIER.ColliderDesc.cuboid(hx, 0.28, bike ? 0.22 : hz).setMass(760 * k).setFriction(0.4).setRestitution(0.1).setCollisionGroups(GROUP.VEHICLE), body),
   ];
-  if (!bike) colliders.push(world.createCollider(RAPIER.ColliderDesc.cuboid(hx * 0.43, 0.2 + (view.parts.roof - 1.32) * 0.5, hz * 0.82)
+  if (!bike && !plane) colliders.push(world.createCollider(RAPIER.ColliderDesc.cuboid(hx * 0.43, 0.2 + (view.parts.roof - 1.32) * 0.5, hz * 0.82)
     .setTranslation(-0.2, 0.5 + (view.parts.roof - 1.32) * 0.5, 0).setMass(90 * k).setFriction(0.4).setCollisionGroups(GROUP.VEHICLE), body));
 
   const ctl = world.createVehicleController(body);
@@ -45,13 +45,14 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
   let stats = tunedStats(model, up);
   const state = {
     gear: 2, gearMode: 'auto', rpm: IDLE, speed: 0, nitro: 1, nitroOn: false, slip: 0, steer: 0, braking: false, throttle: 0,
-    headlightsOn: false, siren: false, horn: false,
+    headlightsOn: false, siren: false, horn: false, thr: 0, slipAngle: 0,
   };
   const v = {
     id: nextId++, model, spec, role, body, colliders, ctl, mesh: view.root, view, state, up: { ...up }, color,
     health: 1, dead: false, burning: 0, exploded: false, tiresPopped: false, ai: null, impact: null, driverInside: role !== 'parked' && role !== 'abandoned',
     airTime: 0, onGround: true, lastHitBy: null,
   };
+  if (plane) { v.camDist = spec.len * 1.35 + 4; v.camHeight = spec.height + 1.2; }
 
   const prev = { p: new THREE.Vector3(), q: new THREE.Quaternion() }, cur = { p: new THREE.Vector3(), q: new THREE.Quaternion() };
   const lastVel = new THREE.Vector3();
@@ -77,8 +78,69 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
   }
   v.maxSteer = () => 0.58 / (1 + Math.abs(state.speed) / 22);
 
+  // Arcade flight: W/S throttle lever, A/D bank and turn, Space climb, Shift dive. Wheels still carry it on the ground.
+  const fwdW = new THREE.Vector3(), upW = new THREE.Vector3(), rightW = new THREE.Vector3(), wl = new THREE.Vector3();
+  function stepPlane(dt, input, env) {
+    const lv = localVelocity(), fwd = lv.x, M = body.mass(), g = 9.81;
+    state.speed = fwd;
+    const off = input.hold || v.dead;
+    state.thr = off ? 0 : Math.min(1, Math.max(0, state.thr + (input.throttle - input.brake) * dt * 0.7));
+    state.throttle = state.thr;
+    state.rpm = IDLE + state.thr * 5200;
+    state.nitroOn = false; state.slip = 0;
+    const q = Math.max(0, fwd) / spec.stall, lift01 = Math.min(1, q * q), air = Math.min(1, q);
+    const r = body.rotation(); tmpQ.set(r.x, r.y, r.z, r.w);
+    fwdW.set(1, 0, 0).applyQuaternion(tmpQ); upW.set(0, 1, 0).applyQuaternion(tmpQ); rightW.set(0, 0, 1).applyQuaternion(tmpQ);
+    // Forces: thrust along the nose, lift along the wings' up, wings resist sideways/vertical slip (turns velocity toward the nose), drag.
+    const thrust = state.thr * spec.thrust * M * env.power * (0.5 + 0.5 * v.health);
+    const lift = M * g * lift01 * (v.dead ? 0.3 : 1);
+    const lin = body.linvel(), v2 = lin.x * lin.x + lin.y * lin.y + lin.z * lin.z, vl = Math.sqrt(v2) || 1;
+    const grip = M * 2.2 * air;
+    const F = wl.copy(fwdW).multiplyScalar(thrust).addScaledVector(upW, lift - grip * lv.y).addScaledVector(rightW, -grip * lv.z);
+    F.x -= (spec.drag * M * v2 * lin.x) / vl; F.y -= (spec.drag * M * v2 * lin.y) / vl; F.z -= (spec.drag * M * v2 * lin.z) / vl;
+    body.resetForces(true);
+    body.addForce({ x: F.x, y: F.y, z: F.z }, true);
+
+    // Ground: nose-wheel steering and brakes.
+    state.steer += Math.max(-dt * 3, Math.min(dt * 3, -input.steer * 0.5 / (1 + Math.abs(fwd) / 10) - state.steer));
+    ctl.setWheelSteering(0, state.steer); ctl.setWheelSteering(1, state.steer);
+    state.braking = input.brake > 0 && v.onGround;
+    for (let i = 0; i < 4; i++) {
+      ctl.setWheelEngineForce(i, 0);
+      ctl.setWheelBrake(i, state.braking || off ? 40 * k : 0.15 * k);
+      ctl.setWheelFrictionSlip(i, 2.2);
+    }
+    ctl.updateVehicle(dt, undefined, GROUP.VEHICLE);
+    let contact = 0;
+    for (let i = 0; i < 4; i++) if (ctl.wheelIsInContact(i)) contact++;
+    v.onGround = contact > 0;
+    v.airTime = contact ? 0 : v.airTime + dt;
+
+    // Rotation: steer the angular velocity toward what the stick asks for (scaled by airspeed).
+    const pitchIn = (input.handbrake ? 1 : 0) - (input.nitro ? 1 : 0);
+    if (v.dead) return;
+    if (!v.onGround) {
+      const bank = -rightW.y; // + = banked right
+      // Fly to an angle, not a rate: bank up to ~55°, climb ~28°, dive ~32°, and drift back to level when you let go.
+      const clamp1 = x => Math.max(-1.6, Math.min(1.6, x));
+      const wx = clamp1((input.steer * 0.82 - bank) * 3);
+      const pitch = Math.asin(Math.max(-1, Math.min(1, fwdW.y)));
+      const wz = clamp1(((pitchIn > 0 ? 0.5 : pitchIn < 0 ? -0.55 : pitch * 0.6) - pitch) * 2.2);
+      const turn = -bank * 1.35 * air;
+      wl.set(wx * air + 0.3 * input.steer * (1 - air), 0, wz * air).applyQuaternion(tmpQ);
+      wl.y += turn;
+      if (air < 0.85) wl.addScaledVector(rightW, -(1 - air) * 0.6); // stall: the nose drops
+      const av = body.angvel(), b = Math.min(1, dt * 6);
+      body.setAngvel({ x: av.x + (wl.x - av.x) * b, y: av.y + (wl.y - av.y) * b, z: av.z + (wl.z - av.z) * b }, true);
+    } else if (pitchIn > 0 && q > 0.8) { // rotate for take-off
+      const av = body.angvel(); wl.copy(rightW).multiplyScalar(0.45);
+      body.setAngvel({ x: av.x + wl.x * dt * 8, y: av.y, z: av.z + wl.z * dt * 8 }, true);
+    }
+  }
+
   // env: { grip, power, infiniteNitro } from weather and mods.
   v.step = (dt, input, env) => {
+    if (plane) return stepPlane(dt, input, env);
     const lv = localVelocity();
     const fwd = lv.x, speed = Math.hypot(lv.x, lv.z);
     state.speed = fwd;
@@ -161,6 +223,7 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
       w.steer.rotation.y = ctl.wheelSteering(pi) ?? 0;
       w.spin.rotation.z = ctl.wheelRotation(pi) ?? 0;
     });
+    if (view.prop) view.prop.rotation.x += dt * (8 + state.thr * 55);
     if (bike) view.lean.rotation.x += (Math.max(-0.6, Math.min(0.6, -state.steer * Math.max(0, state.speed) * 0.09)) - view.lean.rotation.x) * 0.2;
     view.tailMat.emissiveIntensity = state.braking ? 3 : state.headlightsOn ? 1 : 0.3;
     view.headMat.emissiveIntensity = state.headlightsOn ? 4 : 0.4;
@@ -225,7 +288,8 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
   const rot = () => { const r = body.rotation(); return bodyQ.set(r.x, r.y, r.z, r.w); };
   Object.defineProperties(v, {
     speedKmh: { get: () => Math.abs(state.speed) * 3.6 },
-    gearText: { get: () => gearLabel(state.gear) },
+    gearText: { get: () => plane ? `${Math.round(state.thr * 100)}% · ${v.altitude}m` : gearLabel(state.gear) },
+    altitude: { get: () => { const t = body.translation(); return Math.max(0, Math.round(t.y - heightAt(t.x, t.z) - 1)); } },
     heading: { get: () => { const f = up3.set(1, 0, 0).applyQuaternion(rot()); return Math.atan2(-f.z, f.x); } },
     upY: { get: () => up3.set(0, 1, 0).applyQuaternion(rot()).y },
     pos: { get: () => body.translation() },

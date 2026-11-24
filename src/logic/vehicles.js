@@ -10,12 +10,25 @@ export const MODELS = {
   ranger:  { name: 'Ranger SUV',     kind: 'car',  style: 'suv',    price: 18000, mass: 1850, power: 0.95, grip: 0.97, drag: 0.45, armor: 1.3, wheelR: 0.38, axles: [1.45, -1.4], track: 0.84, len: 4.8, width: 1.9, height: 1.8 },
   brutus:  { name: 'Brutus V8',      kind: 'car',  style: 'muscle', price: 26000, mass: 1550, power: 1.18, grip: 0.95, drag: 0.38, armor: 1.15, wheelR: 0.35, axles: [1.55, -1.45], track: 0.82, len: 4.9, width: 1.85, height: 1.35 },
   comet:   { name: 'Comet R',        kind: 'car',  style: 'super',  price: 65000, mass: 1250, power: 1.45, grip: 1.12, drag: 0.33, armor: 0.9, wheelR: 0.35, axles: [1.45, -1.35], track: 0.86, len: 4.6, width: 1.95, height: 1.15 },
+  zip:     { name: 'Zip Scooter',    kind: 'bike', style: 'bike',   price: 3500,  mass: 150,  power: 0.13, grip: 1.0,  drag: 0.32, armor: 0.5, wheelR: 0.26, axles: [0.6, -0.6], track: 0.3, len: 1.8, width: 0.65, height: 1.1 },
+  cab:     { name: 'Metro Cab',      kind: 'car',  style: 'sedan',  price: 7000,  mass: 1400, power: 0.74, grip: 0.95, drag: 0.39, armor: 1.05, wheelR: 0.33, axles: [1.4, -1.35], track: 0.78, len: 4.8, width: 1.8, height: 1.45, paint: '#f2c014' },
+  nomad:   { name: 'Nomad Wagon',    kind: 'car',  style: 'wagon',  price: 9500,  mass: 1500, power: 0.78, grip: 0.95, drag: 0.40, armor: 1.1, wheelR: 0.33, axles: [1.5, -1.45], track: 0.8, len: 4.9, width: 1.8, height: 1.5 },
+  courier: { name: 'Courier Van',    kind: 'car',  style: 'van',    price: 11000, mass: 2200, power: 0.85, grip: 0.9,  drag: 0.52, armor: 1.5, wheelR: 0.36, axles: [1.6, -1.5], track: 0.88, len: 5.0, width: 2.0, height: 2.2 },
+  dune:    { name: 'Dune Buggy',     kind: 'car',  style: 'buggy',  price: 14000, mass: 900,  power: 0.8,  grip: 1.08, drag: 0.42, armor: 0.8, wheelR: 0.4,  axles: [1.25, -1.15], track: 0.85, len: 3.6, width: 1.8, height: 1.4 },
+  scram:   { name: 'Scrambler Rally', kind: 'car', style: 'rally',  price: 21000, mass: 1200, power: 1.02, grip: 1.1,  drag: 0.38, armor: 1.1, wheelR: 0.34, axles: [1.25, -1.2], track: 0.8, len: 4.1, width: 1.78, height: 1.55 },
+  regent:  { name: 'Regent Limo',    kind: 'car',  style: 'limo',   price: 30000, mass: 2600, power: 1.1,  grip: 0.94, drag: 0.42, armor: 1.6, wheelR: 0.36, axles: [2.4, -2.2], track: 0.84, len: 6.6, width: 1.9, height: 1.5, paint: '#111214' },
+  atlas:   { name: 'Atlas Box Truck', kind: 'car', style: 'truck',  price: 24000, mass: 4200, power: 1.5,  grip: 0.88, drag: 0.65, armor: 2.6, wheelR: 0.46, axles: [2.4, -2.1], track: 1.0, len: 7.4, width: 2.4, height: 3.2 },
+  pulse:   { name: 'Pulse EV',       kind: 'car',  style: 'fastback', price: 42000, mass: 1700, power: 1.38, grip: 1.08, drag: 0.31, armor: 1.0, wheelR: 0.35, axles: [1.5, -1.45], track: 0.84, len: 4.8, width: 1.9, height: 1.4 },
+  apex:    { name: 'Apex Hyper',     kind: 'car',  style: 'super',  price: 120000, mass: 1150, power: 1.75, grip: 1.18, drag: 0.31, armor: 0.85, wheelR: 0.36, axles: [1.5, -1.4], track: 0.9, len: 4.7, width: 2.0, height: 1.1 },
+  // Planes: thrust (m/s² at full throttle), stall (m/s; lift equals weight from here). width = fuselage, span = wings.
+  sparrow: { name: 'Sparrow Prop Plane', kind: 'plane', style: 'prop', price: 90000, mass: 1100, power: 1, grip: 1, drag: 0.0019, armor: 0.8, wheelR: 0.3, axles: [2.0, -0.45], track: 1.2, len: 7.6, width: 1.3, height: 2.4, span: 10.5, thrust: 7, stall: 26 },
+  falcon:  { name: 'Falcon Jet',     kind: 'plane', style: 'jet',   price: 250000, mass: 5000, power: 1, grip: 1, drag: 0.0011, armor: 1.2, wheelR: 0.36, axles: [3.4, -0.9], track: 1.6, len: 12, width: 1.8, height: 3.4, span: 9.5, thrust: 13, stall: 42 },
   patrol:  { name: 'Patrol Cruiser', kind: 'car',  style: 'sedan',  price: null,  mass: 1500, power: 1.1,  grip: 1.05, drag: 0.36, armor: 1.3, wheelR: 0.34, axles: [1.4, -1.35], track: 0.8, len: 4.8, width: 1.82, height: 1.45, police: true },
   bulwark: { name: 'Bulwark Armour', kind: 'car',  style: 'van',    price: null,  mass: 3200, power: 1.35, grip: 0.95, drag: 0.55, armor: 3.0, wheelR: 0.42, axles: [1.8, -1.7], track: 0.95, len: 5.6, width: 2.2, height: 2.3, police: true },
 };
 
 export const MODEL_IDS = Object.keys(MODELS);
-export const TRAFFIC_MODELS = ['metro', 'metro', 'metro', 'pico', 'pico', 'hauler', 'ranger', 'ranger', 'vanta', 'brutus'];
+export const TRAFFIC_MODELS = ['metro', 'metro', 'metro', 'pico', 'pico', 'hauler', 'ranger', 'ranger', 'vanta', 'brutus', 'cab', 'cab', 'nomad', 'courier', 'atlas', 'regent', 'pulse'];
 export const TRAFFIC_COLORS = ['#e8e8e6', '#1b1c1f', '#9a9ea3', '#5b6067', '#1d3557', '#8d1b1b', '#c9b99a', '#2e4a35', '#6b2d5c', '#c46a1b'];
 
 export const UPGRADES = {
@@ -46,6 +59,7 @@ export const nextUpgradeCost = (up, k) => (lvl(up, k) >= 3 ? null : UPGRADES[k].
 // 0..1 bars for the car selector.
 export function statBars(id, up = NO_UPGRADES) {
   const s = tunedStats(id, up), m = MODELS[id];
+  if (m.kind === 'plane') return { speed: Math.min(1, Math.sqrt(m.thrust * s.power / m.drag) / 120), accel: Math.min(1, m.thrust / 14), handling: m.stall < 30 ? 0.8 : 0.55, durability: Math.min(1, 1 / s.damageTaken / 3) };
   const top = Math.sqrt((s.power * 420) / m.drag); // drag-limited top speed, arbitrary units
   return {
     speed: Math.min(1, top / 50),

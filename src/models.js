@@ -12,6 +12,12 @@ const STYLES = {
   pickup: { sill: 0.48, tailLow: 0.8,  tail: 1.15, belt: 1.15, deckR: -0.95, deckF: 0.45, noseTop: 1.08, nose: 0.88, cab: [-0.14, -0.1, 0.2, 0.47], roof: 1.8 },
   muscle: { sill: 0.34, tailLow: 0.62, tail: 0.95, belt: 0.98, deckR: -0.66, deckF: 0.22, noseTop: 0.95, nose: 0.72, cab: [-0.66, -0.42, -0.02, 0.24], roof: 1.33 },
   super:  { sill: 0.28, tailLow: 0.55, tail: 0.85, belt: 0.82, deckR: -0.55, deckF: 0.45, noseTop: 0.6,  nose: 0.45, cab: [-0.55, -0.22, 0.12, 0.52], roof: 1.13, spoiler: true },
+  wagon:  { sill: 0.32, tailLow: 0.62, tail: 1.02, belt: 1.0,  deckR: -0.96, deckF: 0.4,  noseTop: 0.88, nose: 0.64, cab: [-0.96, -0.9, 0.1, 0.4], roof: 1.5 },
+  rally:  { sill: 0.42, tailLow: 0.7,  tail: 1.05, belt: 1.05, deckR: -0.94, deckF: 0.36, noseTop: 0.92, nose: 0.7,  cab: [-0.94, -0.84, 0.06, 0.38], roof: 1.56, spoiler: true },
+  buggy:  { sill: 0.5,  tailLow: 0.7,  tail: 0.95, belt: 0.92, deckR: -0.9,  deckF: 0.5,  noseTop: 0.85, nose: 0.75, cab: [-0.5, -0.35, 0.05, 0.3], roof: 1.4 },
+  limo:   { sill: 0.32, tailLow: 0.6,  tail: 0.95, belt: 0.98, deckR: -0.72, deckF: 0.5,  noseTop: 0.86, nose: 0.64, cab: [-0.72, -0.62, 0.3, 0.48], roof: 1.48 },
+  fastback: { sill: 0.3, tailLow: 0.58, tail: 0.88, belt: 0.92, deckR: -0.82, deckF: 0.42, noseTop: 0.72, nose: 0.55, cab: [-0.82, -0.36, 0.12, 0.46], roof: 1.38 },
+  truck:  { sill: 0.62, tailLow: 1.0,  tail: 3.1,  belt: 1.5,  deckR: -0.98, deckF: 0.72, noseTop: 1.4,  nose: 1.15, cab: [0.5, 0.56, 0.68, 0.8], roof: 2.5, box: true },
   van:    { sill: 0.5,  tailLow: 0.9,  tail: 1.9,  belt: 1.35, deckR: -0.98, deckF: 0.55, noseTop: 1.25, nose: 1.0,  cab: [0.5, 0.56, 0.64, 0.8], roof: 2.25, box: true },
 };
 
@@ -44,6 +50,7 @@ export function vehicleParts(id) {
   const m = MODELS[id], R = m.wheelR, bodyY = R + 0.28, h = m.len / 2;
   let parts;
   if (m.kind === 'bike') parts = bikeParts(m, bodyY);
+  else if (m.kind === 'plane') parts = planeParts(m);
   else {
     const p = STYLES[m.style], [xf, xr] = m.axles, ar = R + 0.1;
     const s = new THREE.Shape();
@@ -57,7 +64,7 @@ export function vehicleParts(id) {
     const paint = [extrude(s, m.width - 0.16, 0.08)];
     const glass = extrude(poly([[c0, p.belt - 0.03], [c1, p.roof], [c2, p.roof], [c3, p.belt - 0.03]]), m.width * 0.84, 0.05);
     paint.push(extrude(poly([[c1 + 0.03, p.roof - 0.03], [c2 - 0.03, p.roof - 0.03], [c2 - 0.06, p.roof + 0.04], [c1 + 0.06, p.roof + 0.04]]), m.width * 0.8, 0.03));
-    if (p.box) paint.push(box(c0 - p.deckR * h + 0.02, p.roof - p.belt, m.width - 0.1, (c0 + p.deckR * h) / 2, (p.roof + p.belt) / 2, 0));
+    if (p.box) { const top = Math.max(p.roof, p.tail); paint.push(box(c0 - p.deckR * h + 0.02, top - p.belt, m.width - 0.1, (c0 + p.deckR * h) / 2, (top + p.belt) / 2, 0)); }
     if (p.spoiler) paint.push(box(0.3, 0.05, m.width - 0.1, -h + 0.25, p.tail + 0.25, 0), box(0.06, 0.25, 0.06, -h + 0.3, p.tail + 0.12, -0.6), box(0.06, 0.25, 0.06, -h + 0.3, p.tail + 0.12, 0.6));
     const trim = [colored(glass, 0x0b1118),
       colored(box(0.08, 0.16, m.width * 0.42, h + 0.01, p.nose - 0.12, 0), 0x0d0d0f),
@@ -103,6 +110,35 @@ function bikeParts(m, bodyY) {
   };
 }
 
+// Planes: forward = +x. 'prop' is a high-wing single-prop, 'jet' a low swept-wing business jet.
+function planeParts(m) {
+  const h = m.len / 2, jet = m.style === 'jet', fy = jet ? 1.55 : 1.35, r = m.width / 2;
+  const tube = (r0, r1, len, x, y) => { const g = new THREE.CylinderGeometry(r1, r0, len, 16).rotateZ(-Math.PI / 2).translate(x, y, 0).toNonIndexed(); g.deleteAttribute('uv'); return g; };
+  const flat = (pts, thick, y) => { const g = extrude(poly(pts), thick, 0.02).rotateX(Math.PI / 2).translate(0, y, 0); return g; };
+  const sweep = jet ? 1.6 : 0.15, chord = jet ? 2.2 : 1.6, wy = jet ? fy - 0.45 : fy + 0.65, wx = jet ? -0.4 : 0.6, s2 = m.span / 2;
+  const wing = flat([[wx + chord / 2, -s2 * 0.08], [wx + chord / 2 - sweep, -s2], [wx - chord / 2 - sweep + 0.6, -s2], [wx - chord / 2, -s2 * 0.08], [wx - chord / 2, s2 * 0.08], [wx - chord / 2 - sweep + 0.6, s2], [wx + chord / 2 - sweep, s2], [wx + chord / 2, s2 * 0.08]], 0.14, wy);
+  const tx = -h + 0.9, ty = jet ? fy + 0.35 : fy + 0.15;
+  const stab = flat([[tx + 0.5, -0.3], [tx - 0.2, -1.8], [tx - 0.7, -1.8], [tx - 0.6, -0.3], [tx - 0.6, 0.3], [tx - 0.7, 1.8], [tx - 0.2, 1.8], [tx + 0.5, 0.3]], 0.08, jet ? fy + 2.0 : ty);
+  const fin = extrude(poly([[tx + 0.9, ty], [tx - 0.4, ty + (jet ? 2.1 : 1.5)], [tx - 0.9, ty + (jet ? 2.1 : 1.5)], [tx - 0.8, ty]]), 0.1, 0.02);
+  const paint = [tube(r, r * 0.95, m.len * 0.55, 0.3, fy), tube(r * 0.95, 0.5, 0.9, h * 0.55 + 0.75, fy), tube(0.25, r, m.len * 0.36, -h * 0.62, fy + 0.15), wing, stab, fin];
+  const trim = [colored(box(jet ? 1.4 : 1.2, 0.42, r * 1.6, h * 0.45, fy + r * 0.72, 0), 0x0b1118)];
+  for (const s of [-1, 1]) {
+    trim.push(colored(box(0.08, 1.1, 0.08, 0.1 + (m.axles[1] + 0.05), 0.75, s * m.track), 0x2a2c30));
+    if (!jet) trim.push(colored(new THREE.CylinderGeometry(0.04, 0.04, 1.9, 6).rotateX(s * 0.95).translate(0.6, fy + 0.0, s * 1.45), 0x9aa0a6));
+    if (jet) trim.push(colored(tube(0.42, 0.36, 2.2, -h + 2.6, fy + 0.25).translate(0, 0, s * (r + 0.45)), 0x9aa0a6), colored(tube(0.3, 0.3, 0.05, -h + 1.48, fy + 0.25).translate(0, 0, s * (r + 0.45)), 0x111111));
+  }
+  trim.push(colored(box(0.08, 1.0, 0.08, m.axles[0], 0.8, 0), 0x2a2c30));
+  const ly = fy - 0.1, nx = jet ? h : h - 0.05;
+  return {
+    paint: mergeGeometries(paint), trim: mergeGeometries(trim),
+    heads: mergeGeometries([box(0.05, 0.12, 0.25, nx, ly, 0), box(0.15, 0.1, 0.1, wx, wy, -s2 + 0.1)]),
+    tails: mergeGeometries([box(0.15, 0.1, 0.1, wx, wy, s2 - 0.1), box(0.08, 0.1, 0.1, tx - 0.85, ty + (jet ? 2.1 : 1.5), 0)]),
+    prop: jet ? null : mergeGeometries([colored(box(0.08, 2.0, 0.16, 0, 0, 0), 0x1a1a1a), colored(box(0.08, 0.16, 2.0, 0, 0, 0), 0x1a1a1a), colored(new THREE.ConeGeometry(0.22, 0.4, 10).rotateZ(-Math.PI / 2).translate(0.13, 0, 0), 0xd0d0d0)]),
+    propAt: [h + 0.32, fy],
+    lampY: ly, roof: fy + r, impactY: fy,
+  };
+}
+
 const trimMat = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 0.3, roughness: 0.15, clearcoat: 1 });
 const wheelMat = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.55, roughness: 0.45 });
 
@@ -116,13 +152,15 @@ export function buildVehicleMesh(id, color) {
   const paint = new THREE.Mesh(parts.paint, paintMat), trim = new THREE.Mesh(parts.trim, trimMat);
   paint.castShadow = trim.castShadow = true;
   lean.add(paint, trim, new THREE.Mesh(parts.heads, headMat), new THREE.Mesh(parts.tails, tailMat));
+  let prop = null;
+  if (parts.prop) { prop = new THREE.Mesh(parts.prop, trimMat); prop.position.set(parts.propAt[0], parts.propAt[1] - parts.bodyY, 0); lean.add(prop); }
   let bar = null;
   if (parts.barRed) {
     const r = new THREE.MeshBasicMaterial({ color: 0x330000 }), b = new THREE.MeshBasicMaterial({ color: 0x000033 });
     lean.add(new THREE.Mesh(parts.barRed, r), new THREE.Mesh(parts.barBlue, b));
     bar = { r, b };
   }
-  const visual = m.kind === 'bike' ? [[m.axles[0], 0], [m.axles[1], 0]] : [[m.axles[0], -m.track], [m.axles[0], m.track], [m.axles[1], -m.track], [m.axles[1], m.track]];
+  const visual = m.kind === 'bike' ? [[m.axles[0], 0], [m.axles[1], 0]] : m.kind === 'plane' ? [[m.axles[0], -0.13], [m.axles[0], 0.13], [m.axles[1], -m.track], [m.axles[1], m.track]] : [[m.axles[0], -m.track], [m.axles[0], m.track], [m.axles[1], -m.track], [m.axles[1], m.track]];
   const wheels = visual.map(([x, z]) => {
     const steer = new THREE.Group(), spin = new THREE.Mesh(parts.wheel, wheelMat);
     spin.castShadow = true;
@@ -131,7 +169,7 @@ export function buildVehicleMesh(id, color) {
     lean.add(steer);
     return { steer, spin, x, z };
   });
-  return { root, lean, paint, paintMat, headMat, tailMat, wheels, bar, parts };
+  return { root, lean, paint, paintMat, headMat, tailMat, wheels, bar, parts, prop };
 }
 
 export function heliMesh() {

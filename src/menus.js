@@ -103,7 +103,7 @@ export function createMenus(G) {
   function controls() {
     const rows = [['W / ↑', 'Gas · walk'], ['S / ↓', 'Brake, reverse'], ['A D / ← →', 'Steer · turn'], ['Space', 'Handbrake · jump'], ['Shift', 'Nitro · sprint'],
       ['F', 'Get in / out, use, rob (hold)'], ['K / click', 'Attack · shoot (drive-by in a car)'], ['X / wheel', 'Next weapon'], ['H', 'Horn'], ['G', 'Auto / manual gears'], ['Q / E', 'Shift down / up'],
-      ['C', 'Camera'], ['L', 'Headlights'], ['N', 'Radio station'], ['R', 'Back on the road'], ['T', 'Skip an hour'], ['M', 'Map'], ['V', 'Car selector'], ['P', 'Photo mode'], ['F2 / `', 'Mod menu'], ['Esc', 'Pause']];
+      ['Plane', 'W/S throttle · A/D bank · Space climb · Shift dive · S on ground brakes'], ['C', 'Camera'], ['L', 'Headlights'], ['N', 'Radio station'], ['R', 'Back on the road'], ['T', 'Skip an hour'], ['M', 'Map'], ['V', 'Car selector'], ['P', 'Photo mode'], ['F2 / `', 'Mod menu'], ['Esc', 'Pause']];
     show('controls', 'Controls', h('dl', { class: 'keys' }, ...rows.flatMap(([k, d]) => [h('dt', {}, k), h('dd', {}, d)])), btn('Back', pause));
   }
 
@@ -125,8 +125,9 @@ export function createMenus(G) {
     let sel = P.vehicle?.owned ?? S.current, pick = mode === 'dealer' ? null : S.garage[sel] ? sel : 0, model = mode === 'dealer' ? (P.vehicle?.model || 'vanta') : S.garage[pick]?.model;
     G.rig.orbit = { yaw: G.rig.openYaw(P.target()), dist: 7, height: 2.4, spin: 0 };
     const preview = () => {
-      const owned = mode !== 'dealer' ? S.garage[pick] : null;
-      G.game.swapVehicle(owned ? owned.model : model, owned ? owned.color : '#b3122e', owned ? owned.up : undefined, owned ? pick : undefined);
+      const owned = mode !== 'dealer' ? S.garage[pick] : null, id = owned ? owned.model : model;
+      G.game.swapVehicle(id, owned ? owned.color : MODELS[id].paint ?? '#b3122e', owned ? owned.up : undefined, owned ? pick : undefined);
+      G.rig.orbit.dist = Math.max(7, MODELS[id].len * 1.5); G.rig.orbit.height = Math.max(2.4, MODELS[id].height);
     };
     onClose = () => {
       const v = P.vehicle;
@@ -154,18 +155,18 @@ export function createMenus(G) {
       const actions = mode === 'dealer'
         ? (isOwned ? h('p', { class: 'note' }, 'You own this one. Change it at your garage.') : btn(`Buy for $${m.price.toLocaleString()}`, () => {
           if (G.money < m.price) return G.hud.toast('Not enough money');
-          if (S.garage.length >= 12) return G.hud.toast('Your garage is full (12 cars)');
+          if (S.garage.length >= 24) return G.hud.toast('Your garage is full (24 vehicles)');
           G.addMoney(-m.price);
-          S.garage.push({ model, color: '#b3122e', up: { engine: 0, tires: 0, nitro: 0, armor: 0 } });
+          S.garage.push({ model, color: m.paint ?? '#b3122e', up: { engine: 0, tires: 0, nitro: 0, armor: 0 } });
           S.current = S.garage.length - 1;
-          G.game.swapVehicle(model, '#b3122e', undefined, S.current);
-          G.audio?.cash(); G.hud.banner('NEW CAR!', m.name, 'good');
-          onClose = null; close();
+          G.game.swapVehicle(model, m.paint ?? '#b3122e', undefined, S.current);
+          G.audio?.cash(); G.hud.banner(m.kind === 'plane' ? 'NEW PLANE!' : 'NEW CAR!', m.name, 'good');
+          onClose = null; close(); G.game.airStart();
         }, 'primary'))
-        : btn('Drive this', () => { S.current = pick; onClose = null; close(); }, 'primary');
+        : btn(m.kind === 'plane' ? 'Fly this' : 'Drive this', () => { S.current = pick; onClose = null; close(); G.game.airStart(); }, 'primary');
       const keep = mode === 'garage' && original && original.owned === undefined && P.vehicle && !MODELS[original.model].police
         ? btn(`Keep the ${MODELS[original.model].name} you brought`, () => {
-          if (S.garage.length >= 12) return G.hud.toast('Your garage is full');
+          if (S.garage.length >= 24) return G.hud.toast('Your garage is full');
           S.garage.push({ model: original.model, color: original.color, up: { engine: 0, tires: 0, nitro: 0, armor: 0 } });
           pick = S.current = S.garage.length - 1; original.owned = pick; preview(); render(); G.hud.toast('Added to your garage');
         }) : null;
@@ -173,7 +174,7 @@ export function createMenus(G) {
         h('div', { class: 'selector' },
           h('div', { class: 'list' }, ...list),
           h('div', { class: 'detail' },
-            h('h3', {}, m.name), h('p', { class: 'note' }, `${m.kind === 'bike' ? 'Motorbike' : m.style} · ${m.mass} kg`),
+            h('h3', {}, m.name), h('p', { class: 'note' }, `${m.kind === 'bike' ? 'Motorbike' : m.kind === 'plane' ? 'Plane' : m.style} · ${m.mass} kg`),
             stat('Top speed', bars.speed), stat('Acceleration', bars.accel), stat('Handling', bars.handling), stat('Toughness', bars.durability),
             paint, ups, keep, actions, btn('Close', close))));
     };

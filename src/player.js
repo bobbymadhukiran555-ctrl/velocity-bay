@@ -41,7 +41,7 @@ export function createPlayer(G, save) {
 
   P.enter = v => {
     P.vehicle = v; P.mode = 'car';
-    v.role = 'player'; v.ai = null; v.driverInside = true; v.state.gearMode = G.settings.gearMode;
+    v.role = 'player'; v.ai = null; v.hangar = null; v.driverInside = true; v.state.gearMode = G.settings.gearMode;
     col.setEnabled(false);
     human.visible = v.spec.kind === 'bike';
     human.ride = v.spec.kind === 'bike';
@@ -118,8 +118,18 @@ export function createPlayer(G, save) {
       if (human.timer <= 0) { human.state = 'walk'; human.fall = 0; }
       return;
     }
-    P.yaw -= input.steer * 2.8 * dt;
-    const sp = input.throttle ? (input.nitro ? 6.8 : 3.3) : input.brake ? -2 : 0;
+    let sp;
+    const st = input.stick, mag = st ? Math.hypot(st.x, st.y) : 0;
+    if (st) { // joystick: walk the way it points, relative to the camera; push it all the way to run
+      if (mag > 0.15) {
+        const want = (G.camYaw ?? P.yaw) - Math.atan2(st.x, st.y), d = Math.atan2(Math.sin(want - P.yaw), Math.cos(want - P.yaw));
+        P.yaw += d * Math.min(1, dt * 10);
+      }
+      sp = mag < 0.15 ? 0 : mag > 0.9 || input.nitro ? 6.8 : 3.3 * Math.min(1, mag / 0.6);
+    } else {
+      P.yaw -= input.steer * 2.8 * dt;
+      sp = input.throttle ? (input.nitro ? 6.8 : 3.3) : input.brake ? -2 : 0;
+    }
     P.vy -= 20 * dt;
     if (P.grounded && input.handbrake && P.vy <= 0) P.vy = 6.2;
     const desired = { x: Math.cos(P.yaw) * sp * dt, y: P.vy * dt, z: -Math.sin(P.yaw) * sp * dt };
