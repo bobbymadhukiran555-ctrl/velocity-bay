@@ -285,7 +285,11 @@ async function boot() {
     edges();
     camera.getWorldDirection(camDir);
     G.camYaw = Math.atan2(-camDir.z, camDir.x);
+    const vehicleKind = P.vehicle?.spec?.kind;
+    const controlMode = P.mode === 'foot' ? (P.weapon === 'fists' ? 'foot' : 'shoot')
+      : vehicleKind === 'plane' ? 'plane' : vehicleKind === 'bike' ? 'bike' : 'car';
     document.body.classList.toggle('on-foot', P.mode === 'foot');
+    for (const m of ['car', 'bike', 'plane', 'foot', 'shoot']) document.body.classList.toggle(`mode-${m}`, m === controlMode);
     const dt = G.paused ? 0 : raw * G.timeScale * (G.mods.slowmo ? 0.35 : 1);
     const driven = P.mode === 'car' && P.vehicle && !G.paused ? P.vehicle : null;
     if (driven) {

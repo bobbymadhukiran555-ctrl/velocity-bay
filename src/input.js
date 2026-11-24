@@ -32,7 +32,7 @@ export function createInput(onFirstInput) {
 
   for (const el of document.querySelectorAll('[data-input]')) {
     const names = el.dataset.input.split(' ');
-    const down = e => { e.preventDefault(); e.stopPropagation(); wake(); el.setPointerCapture?.(e.pointerId); for (const n of names) { if (HOLD[n]) held.add(n); if (EDGE[n]) pressed.add(n); } el.classList.add('on'); };
+    const down = e => { e.preventDefault(); e.stopPropagation(); wake(); try { el.setPointerCapture?.(e.pointerId); } catch {} for (const n of names) { if (HOLD[n]) held.add(n); if (EDGE[n]) pressed.add(n); } el.classList.add('on'); };
     const up = () => { for (const n of names) held.delete(n); el.classList.remove('on'); };
     el.addEventListener('pointerdown', down);
     for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) el.addEventListener(ev, up);

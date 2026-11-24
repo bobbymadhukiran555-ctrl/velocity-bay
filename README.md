@@ -30,6 +30,8 @@ Gamepad (standard layout): right trigger gas · left trigger brake · left stick
 
 Flying with a pad: left stick banks and controls pitch (pull back to climb, push forward to dive) · triggers move the throttle lever · right stick looks around in the cockpit. Textures scale with the quality setting: low 0.5×, med 1×, high 2× resolution.
 
+Touch controls swap automatically by mode: **car** (steer, gas, brake, nitro, handbrake), **bike** (the same without the weapon button), **plane** (bank, climb, dive, throttle up/down), **on foot** (joystick, hit, jump, run) and **shooting** (joystick, big FIRE, weapon, run, jump).
+
 ## Tests
 
 ```bash
