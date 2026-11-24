@@ -37,11 +37,29 @@ function extrude(shape, depth, bevel) {
 }
 const poly = pts => { const s = new THREE.Shape(); pts.forEach(([x, y], i) => (i ? s.lineTo(x, y) : s.moveTo(x, y))); return s; };
 
+// Small real-car details: mirrors, door seams and handles, plates, exhaust tips. All merged into the trim mesh.
+function carDetails(m, p, h, c1, c2, c3) {
+  const hw = m.width / 2, dark = 0x0a0a0c, out = [];
+  for (const s of [-1, 1]) {
+    out.push(colored(box(0.1, 0.08, 0.14, c3 - 0.02, p.belt + 0.07, s * (hw + 0.06)), dark));
+    out.push(colored(box(0.012, p.belt - p.sill - 0.12, 0.012, c1 + 0.02, (p.belt + p.sill) / 2 + 0.02, s * (hw + 0.004)), dark));
+    out.push(colored(box(0.012, p.belt - p.sill - 0.12, 0.012, (c2 + c3) / 2, (p.belt + p.sill) / 2 + 0.02, s * (hw + 0.004)), dark));
+    out.push(colored(box(0.14, 0.025, 0.02, (c1 + c2) / 2, p.belt - 0.1, s * (hw + 0.006)), 0xaab0b6));
+    const ex = new THREE.CylinderGeometry(0.045, 0.045, 0.12, 8).rotateZ(Math.PI / 2).translate(-h - 0.02, p.sill + 0.04, s * m.width * 0.28);
+    out.push(colored(ex, 0x8d9298));
+  }
+  out.push(colored(box(0.02, 0.12, 0.36, h + 0.015, p.sill + 0.22, 0), 0xe8e4d0), colored(box(0.02, 0.12, 0.36, -h - 0.005, p.tailLow - 0.1, 0), 0xe8e4d0));
+  return out;
+}
+
 function wheelGeo(r, w) {
   const tire = colored(new THREE.CylinderGeometry(r, r, w, 22).rotateX(Math.PI / 2), 0x141416);
   const rim = colored(new THREE.CylinderGeometry(r * 0.64, r * 0.64, w + 0.01, 14).rotateX(Math.PI / 2), 0xb8bcc2);
   const spokes = [0, 1, 2, 3, 4].map(k => colored(new THREE.BoxGeometry(r * 1.2, r * 0.13, w + 0.02).rotateZ((k * Math.PI) / 5), 0x9da2a8));
-  return mergeGeometries([tire, rim, ...spokes]);
+  const disc = colored(new THREE.CylinderGeometry(r * 0.5, r * 0.5, w * 0.5, 16).rotateX(Math.PI / 2), 0x55585c);
+  const lip = colored(new THREE.TorusGeometry(r * 0.66, r * 0.035, 6, 20), 0xd2d6db); lip.translate(0, 0, w / 2 + 0.003);
+  const lugs = [0, 1, 2, 3, 4].map(k => { const a = (k * Math.PI * 2) / 5; return colored(new THREE.CylinderGeometry(r * 0.04, r * 0.04, w + 0.04, 6).rotateX(Math.PI / 2).translate(Math.cos(a) * r * 0.2, Math.sin(a) * r * 0.2, 0), 0x6c7075); });
+  return mergeGeometries([tire, rim, disc, lip, ...lugs, ...spokes]);
 }
 
 const cache = new Map();
@@ -66,7 +84,7 @@ export function vehicleParts(id) {
     paint.push(extrude(poly([[c1 + 0.03, p.roof - 0.03], [c2 - 0.03, p.roof - 0.03], [c2 - 0.06, p.roof + 0.04], [c1 + 0.06, p.roof + 0.04]]), m.width * 0.8, 0.03));
     if (p.box) { const top = Math.max(p.roof, p.tail); paint.push(box(c0 - p.deckR * h + 0.02, top - p.belt, m.width - 0.1, (c0 + p.deckR * h) / 2, (top + p.belt) / 2, 0)); }
     if (p.spoiler) paint.push(box(0.3, 0.05, m.width - 0.1, -h + 0.25, p.tail + 0.25, 0), box(0.06, 0.25, 0.06, -h + 0.3, p.tail + 0.12, -0.6), box(0.06, 0.25, 0.06, -h + 0.3, p.tail + 0.12, 0.6));
-    const trim = [colored(glass, 0x0b1118),
+    const trim = [...carDetails(m, p, h, c1, c2, c3), colored(glass, 0x0b1118),
       colored(box(0.24, 0.14, m.width * 0.78, c3 - 0.08, p.belt + 0.06, 0), 0x101418), // dashboard
       colored(box(0.08, 0.16, m.width * 0.42, h + 0.01, p.nose - 0.12, 0), 0x0d0d0f),
       colored(box(0.1, 0.12, m.width - 0.1, h - 0.02, p.sill + 0.04, 0), 0x18191b),

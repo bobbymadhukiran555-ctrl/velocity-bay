@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import { buildWorld } from './world.js';
 import { buildCoaster } from './coaster.js';
+import { createPostFx } from './postfx.js';
 import { createInput } from './input.js';
 import { createCameraRig } from './camera.js';
 import { createHud } from './hud.js';
@@ -232,7 +233,7 @@ async function boot() {
   const fit = () => {
     if (innerWidth === fitW && innerHeight === fitH) return;
     fitW = innerWidth; fitH = innerHeight;
-    camera.aspect = fitW / Math.max(1, fitH); camera.updateProjectionMatrix(); renderer.setSize(fitW, fitH);
+    camera.aspect = fitW / Math.max(1, fitH); camera.updateProjectionMatrix(); renderer.setSize(fitW, fitH); post?.setSize(fitW, fitH);
     G.smoke.mat.uniforms.scale.value = G.glow.mat.uniforms.scale.value = fitH * renderer.getPixelRatio() * 0.6;
     G.menus.redrawMap();
   };
@@ -291,7 +292,8 @@ async function boot() {
   document.getElementById('loading-spinner').remove();
   document.body.classList.add('ready');
 
-  const render = () => renderer.render(scene, camera);
+  const post = createPostFx(renderer, scene, camera, quality);
+  const render = () => (post ? post.render() : renderer.render(scene, camera));
   G.renderNow = render;
   let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0;
   renderer.setAnimationLoop(now => {
@@ -399,6 +401,7 @@ async function boot() {
     const fxKmh = pv && pv.spec.kind !== 'plane' ? pv.speedKmh : 0;
     speedFx.style.opacity = Math.min(0.55, Math.max(0, (fxKmh - 110) / 220) + (pv?.state.nitroOn ? 0.25 : 0));
     speedFx.classList.toggle('nitro', !!pv?.state.nitroOn);
+    if (post) post.set(Math.min(1, Math.max(0, (fxKmh - 130) / 200) + (pv?.state.nitroOn ? 0.3 : 0)), document.body.classList.contains('photo') ? Math.max(2, camera.position.distanceTo(G.focus)) : 0);
     headlights.forEach(l => (l.intensity = pv?.state.headlightsOn ? 260 : 0));
     G.rig.look = input.look();
     G.rig.update(raw, P.camTarget());

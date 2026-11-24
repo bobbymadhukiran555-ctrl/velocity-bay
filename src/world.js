@@ -121,6 +121,23 @@ function city(scene, RAPIER, world, aniso, mats) {
   const r = new THREE.Mesh(mergeGeometries(roofs), new THREE.MeshStandardMaterial({ color: 0x55575a, roughness: 0.9 }));
   for (const m of [w, r]) { m.castShadow = m.receiveShadow = true; scene.add(m); }
 
+  // Real-building details: cornice at the roofline, shop awnings, rooftop AC units and water tanks.
+  const bits = [];
+  const piece = (g, x, y, z) => { g.translate(x, y, z); bits.push(g); };
+  for (const b of buildings) {
+    piece(new THREE.BoxGeometry(b.w + 0.7, 0.7, b.d + 0.7), b.x, b.h - 0.35, b.z);
+    if (rand() < 0.5) piece(new THREE.BoxGeometry(b.w * 0.7, 0.15, 1.6), b.x, 4.2, b.z + b.d / 2 + 0.8);
+    const ox = (rand() - 0.5) * (b.w - 5), oz = (rand() - 0.5) * (b.d - 5);
+    piece(new THREE.BoxGeometry(2.4, 1.3, 1.7), b.x + ox, b.h + 0.65, b.z + oz);
+    if (b.h > 28) {
+      piece(new THREE.CylinderGeometry(1.3, 1.3, 2.6, 12), b.x - ox * 0.6, b.h + 3.2, b.z - oz * 0.6);
+      piece(new THREE.BoxGeometry(2.4, 1.9, 2.4), b.x - ox * 0.6, b.h + 0.95, b.z - oz * 0.6);
+    }
+  }
+  const trimMesh = new THREE.Mesh(mergeGeometries(bits), new THREE.MeshStandardMaterial({ color: 0x7a7d82, roughness: 0.85 }));
+  trimMesh.castShadow = trimMesh.receiveShadow = true;
+  scene.add(trimMesh);
+
   const grass = new THREE.MeshStandardMaterial({ color: 0x3f6b2c, roughness: 1 });
   for (const p of parks) {
     const g = new THREE.Mesh(new THREE.PlaneGeometry(p.size, p.size).rotateX(-Math.PI / 2), grass);
@@ -271,6 +288,21 @@ export function buildWorld(scene, renderer, RAPIER, world, quality) {
   Object.keys(su).forEach(k => { if (envSky.material.uniforms[k] && k !== 'sunPosition') envSky.material.uniforms[k].value = su[k].value; });
 
   const starField = stars(); scene.add(starField);
+  // Drifting cloud layer: noise on a big disc that follows the player.
+  const cloudMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: false, side: THREE.DoubleSide,
+    uniforms: { time: { value: 0 }, cover: { value: 0.3 }, tint: { value: new THREE.Color(1, 1, 1) } },
+    vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+    fragmentShader: `varying vec3 vW; uniform float time, cover; uniform vec3 tint;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
+      void main(){ vec2 p = vW.xz / 900.0 + vec2(time * 0.004, time * 0.0015); float v = 0.0, a = 0.5;
+        for (int i = 0; i < 5; i++) { v += a * n(p); p *= 2.05; a *= 0.5; }
+        float edge = 1.0 - smoothstep(2500.0, 6500.0, length(vW.xz - cameraPosition.xz));
+        gl_FragColor = vec4(tint * (0.78 + 0.22 * v), smoothstep(1.0 - cover, 1.0 - cover + 0.28, v) * edge * 0.92); }`,
+  });
+  const clouds = new THREE.Mesh(new THREE.CircleGeometry(7000, 48).rotateX(-Math.PI / 2), cloudMat);
+  clouds.renderOrder = -1; scene.add(clouds);
   const sun = new THREE.DirectionalLight(0xffffff, 3);
   sun.castShadow = true;
   const sm = quality === 'high' ? 4096 : quality === 'low' ? 1024 : 2048;
@@ -309,6 +341,10 @@ export function buildWorld(scene, renderer, RAPIER, world, quality) {
     renderer.toneMappingExposure = (0.8 + (1 - s.daylight) * 0.3) * (1 - 0.15 * wx.cloud) + wx.flash * 0.2;
     starField.material.opacity = Math.max(0, 1 - s.daylight * 3) * (1 - wx.cloud);
     starField.position.copy(focus);
+    clouds.position.set(focus.x, 650, focus.z);
+    cloudMat.uniforms.time.value = performance.now() / 1000;
+    cloudMat.uniforms.cover.value = 0.22 + 0.6 * wx.cloud;
+    cloudMat.uniforms.tint.value.setRGB(0.12, 0.14, 0.2).lerp(WET.setRGB(1, 0.97, 0.94), s.daylight).multiplyScalar(1 - 0.35 * wx.cloud);
     mats.windows.emissiveIntensity = Math.max(0, 1 - s.daylight * 1.6) * 1.4;
     for (const m of mats.wet) { m.roughness = 0.82 - 0.4 * wx.wet; m.color.copy(WET.setScalar(1 - 0.45 * wx.wet)); }
     if (Math.abs(t01 - lastEnvT) > 0.004 || lastEnvT < 0) {
