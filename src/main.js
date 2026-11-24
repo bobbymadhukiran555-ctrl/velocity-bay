@@ -3,6 +3,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import { buildWorld } from './world.js';
 import { buildCoaster } from './coaster.js';
 import { createPostFx } from './postfx.js';
+import { loadKenneyCars } from './kenney.js';
 import { createInput } from './input.js';
 import { createCameraRig } from './camera.js';
 import { createHud } from './hud.js';
@@ -72,6 +73,8 @@ async function boot() {
   G.addMoney = n => { save.money = Math.max(0, Math.round(save.money + n)); if (n > 0) bump(save.stats, 'earned', n); };
   window.__game = G; // console debugging aid
 
+  setStatus('Loading car models…');
+  await loadKenneyCars((n, total) => setStatus(`Loading car models… ${n}/${total}`));
   setStatus('Building Velocity Bay…');
   await frameYield();
   const env = buildWorld(scene, renderer, RAPIER, world, quality);

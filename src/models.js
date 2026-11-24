@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MODELS } from './logic/vehicles.js';
+import { kenneyParts } from './kenney.js';
 
 // Side profiles. x values are fractions of half the length (+ = front), y values are metres above the ground.
 const STYLES = {
@@ -65,6 +66,8 @@ function wheelGeo(r, w) {
 const cache = new Map();
 export function vehicleParts(id) {
   if (cache.has(id)) return cache.get(id);
+  const kp = kenneyParts(id);
+  if (kp) { cache.set(id, kp); return kp; }
   const m = MODELS[id], R = m.wheelR, bodyY = R + 0.28, h = m.len / 2;
   let parts;
   if (m.kind === 'bike') parts = bikeParts(m, bodyY);
@@ -184,9 +187,9 @@ export function buildVehicleMesh(id, color) {
   }
   const visual = m.kind === 'bike' ? [[m.axles[0], 0], [m.axles[1], 0]] : m.kind === 'plane' ? [[m.axles[0], -0.13], [m.axles[0], 0.13], [m.axles[1], -m.track], [m.axles[1], m.track]] : [[m.axles[0], -m.track], [m.axles[0], m.track], [m.axles[1], -m.track], [m.axles[1], m.track]];
   const wheels = visual.map(([x, z]) => {
-    const steer = new THREE.Group(), spin = new THREE.Mesh(parts.wheel, wheelMat);
+    const steer = new THREE.Group(), spin = new THREE.Mesh(z < 0 ? (parts.wheelL ?? parts.wheel) : (parts.wheelR ?? parts.wheel), wheelMat);
     spin.castShadow = true;
-    steer.position.set(x, -0.3, z);
+    steer.position.set(x, -0.3, parts.visTrack ? Math.sign(z) * parts.visTrack : z);
     steer.add(spin);
     lean.add(steer);
     return { steer, spin, x, z };

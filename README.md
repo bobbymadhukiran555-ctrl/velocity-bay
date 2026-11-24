@@ -46,3 +46,6 @@ npm test
 4. Save. After that, every push to `main` goes live.
 
 Design and plans: `docs/superpowers/`.
+
+## Credits
+Most road cars use models from Kenney's Car Kit (CC0, https://kenney.nl/assets/car-kit), stored in `assets/cars/` with its licence file.
