@@ -98,10 +98,10 @@ function building(b) {
 }
 
 function city(scene, RAPIER, world, aniso, mats) {
+  const tile = T.cityTileTexture(aniso);
+  for (const t of Object.values(tile)) { t.repeat.set(8.2, 8.2); t.offset.set(-0.1, -0.1); }
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(820, 820).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ map: T.cityTileTexture(aniso), roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2 }));
-  ground.material.map.repeat.set(8.2, 8.2);
-  ground.material.map.offset.set(-0.1, -0.1);
+    new THREE.MeshStandardMaterial({ ...tile, roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2 }));
   ground.position.y = 0.02;
   ground.receiveShadow = true;
   scene.add(ground);
@@ -115,7 +115,7 @@ function city(scene, RAPIER, world, aniso, mats) {
     fixedBox(RAPIER, world, b.x, b.h / 2, b.z, b.w / 2, b.h / 2, b.d / 2);
   }
   const facade = T.facadeTextures(aniso);
-  mats.windows = new THREE.MeshStandardMaterial({ map: facade.map, vertexColors: true, emissiveMap: facade.emissive, emissive: 0xffffff, emissiveIntensity: 0, roughness: 0.45, metalness: 0.35 });
+  mats.windows = new THREE.MeshStandardMaterial({ map: facade.map, normalMap: facade.normalMap, roughnessMap: facade.roughnessMap, vertexColors: true, emissiveMap: facade.emissive, emissive: 0xffffff, emissiveIntensity: 0, roughness: 1, metalness: 0.35 });
   const w = new THREE.Mesh(mergeGeometries(walls), mats.windows);
   const r = new THREE.Mesh(mergeGeometries(roofs), new THREE.MeshStandardMaterial({ color: 0x55575a, roughness: 0.9 }));
   for (const m of [w, r]) { m.castShadow = m.receiveShadow = true; scene.add(m); }
@@ -235,7 +235,7 @@ export function buildWorld(scene, renderer, RAPIER, world, quality) {
   const mats = { wet: [] };
   scene.add(terrain(RAPIER, world, aniso));
 
-  const roadMat = new THREE.MeshStandardMaterial({ map: T.roadTexture(aniso), roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -1 });
+  const roadMat = new THREE.MeshStandardMaterial({ ...T.roadTexture(aniso), roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -1 });
   mats.wet.push(roadMat);
   for (const prof of M.ROAD_PROFILES) {
     const geo = roadRibbon(prof);

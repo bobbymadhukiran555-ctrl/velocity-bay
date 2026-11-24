@@ -1,6 +1,7 @@
 import { MAP_HALF, SPAWN, heightAt } from './map.js';
 import { MODELS } from './vehicles.js';
 import { MISSIONS, STUNT_IDS, EVENTS, SPEED_CAMS } from './places.js';
+import { DEFAULT_STATS, ACHIEVEMENTS } from './achievements.js';
 
 export const SAVE_KEY = 'velocitybay.save';
 
@@ -18,6 +19,8 @@ export const DEFAULT_SAVE = Object.freeze({
   missions: 0,
   stunts: Object.freeze([]),
   best: Object.freeze({}),
+  stats: DEFAULT_STATS,
+  achievements: Object.freeze([]),
   settings: DEFAULT_SETTINGS,
 });
 
@@ -51,6 +54,9 @@ export function parseSave(raw) {
   if (Array.isArray(raw.stunts)) d.stunts = [...new Set(raw.stunts.filter(id => STUNT_IDS.includes(id)))];
   if (raw.best && typeof raw.best === 'object')
     for (const e of [...EVENTS, ...SPEED_CAMS]) if (num(raw.best[e.id]) && raw.best[e.id] >= 0) d.best[e.id] = raw.best[e.id];
+  const st = raw.stats || {};
+  for (const k of Object.keys(DEFAULT_STATS)) if (num(st[k]) && st[k] >= 0) d.stats[k] = st[k];
+  if (Array.isArray(raw.achievements)) d.achievements = [...new Set(raw.achievements.filter(id => ACHIEVEMENTS.some(a => a.id === id)))];
   const s = raw.settings || {};
   d.settings = { ...DEFAULT_SETTINGS };
   if (typeof s.crime === 'boolean') d.settings.crime = s.crime;

@@ -139,7 +139,7 @@ export function createHumans(G) {
     const active = h.role === 'cop' ? G.wanted.stars > 0 : h.hostile;
     if (!active) { h.speed = 0; if (h.role === 'cop' && (h.timer -= dt) <= 0) remove(h); return; }
     h.yaw = Math.atan2(-dz, dx);
-    const shoot = (h.role === 'gang' || G.wanted.stars >= 2) && d < 30;
+    const shoot = (h.role === 'gang' || G.wanted.stars > 0) && d < (G.wanted.stars >= 2 ? 30 : 18);
     const close = h.role === 'cop' ? 1.2 : 6;
     h.pose = shoot ? 'aim' : null;
     if (d > close && !(shoot && d < 14)) {

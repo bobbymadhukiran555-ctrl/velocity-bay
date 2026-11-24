@@ -145,7 +145,8 @@ export function createPois(G) {
             G.timeScale = 1;
             if (landed) {
               const ok = stunt.air > 0.8 && v.upY > 0.5, id = stunt.r.id;
-              if (ok && !G.save.stunts.includes(id)) { G.save.stunts.push(id); G.addMoney(500); G.hud.banner('UNIQUE STUNT JUMP!', `+$500 · ${G.save.stunts.length}/${stunts.length} found`); G.audio?.cash(); }
+              if (ok) G.statsProgress('jumps');
+              if (ok && !G.save.stunts.includes(id)) { G.save.stunts.push(id); G.statsProgress('stunts'); G.addMoney(500); G.hud.banner('UNIQUE STUNT JUMP!', `+$500 · ${G.save.stunts.length}/${stunts.length} found`); G.audio?.cash(); }
               else if (ok) G.hud.toast(`Stunt jump! ${stunt.air.toFixed(1)} s air`);
               else G.hud.toast('Stunt failed');
             }

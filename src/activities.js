@@ -27,6 +27,7 @@ export function createActivities(G) {
     G.hud.banner(title, sub, ok ? 'good' : 'bad');
     G.freezePlayer = false;
     G.audio?.[ok ? 'win' : 'fail']();
+    if (act.kind === 'event' && ok) G.statsProgress('events');
     G.game.persist();
   }
   const needVehicle = () => { if (G.player.mode !== 'car' || !G.player.vehicle) { G.hud.toast('You need a vehicle for this'); return true; } return false; };
@@ -59,7 +60,7 @@ export function createActivities(G) {
 
   function startRace(e) {
     if (needVehicle()) return;
-    const timed = e.type === 'timetrial', laps = e.laps ?? 1;
+    const timed = e.type === 'timetrial' || e.type === 'delivery', laps = e.laps ?? 1;
     toStart(e.start, timed ? 0 : 3.5);
     const seq = [], snapped = e.checkpoints.map(([x, z]) => { const l = locate(x, z); return [l.x, l.z]; });
     for (let l = 0; l < laps; l++) seq.push(...snapped);
@@ -105,10 +106,15 @@ export function createActivities(G) {
       const order = raceOrder(racers.map(r => ({ ...r, passed: r.done !== null ? 1e6 - r.done : r.passed })));
       const pos = order.findIndex(r => r.me) + 1;
       const lap = Math.min(laps, Math.floor(me.passed / snapped.length) + 1);
-      G.hud.info(`${timed ? '' : `Pos ${pos}/${racers.length} · `}${laps > 1 ? `Lap ${lap}/${laps} · ` : ''}CP ${me.passed}/${seq.length} · ${fmtTime(act.t)}`);
+      G.hud.info(`${e.type === 'delivery' ? `${Math.max(0, e.time - act.t).toFixed(1)} s left · ` : timed ? '' : `Pos ${pos}/${racers.length} · `}${laps > 1 ? `Lap ${lap}/${laps} · ` : ''}CP ${me.passed}/${seq.length} · ${fmtTime(act.t)}`);
+      if (e.type === 'delivery' && act.t > e.time) return finish(act, false, 'DELIVERY FAILED', 'Too slow');
       if (me.done !== null) {
         const best = G.save.best[e.id];
         if (best === undefined || me.done < best) G.save.best[e.id] = me.done;
+        if (e.type === 'delivery') {
+          G.addMoney(e.reward);
+          return finish(act, true, 'DELIVERED', `${fmtTime(me.done)} · +$${e.reward}`);
+        }
         if (timed) {
           const medal = medalForTime(me.done, e.targets), pay = medal ? Math.round(e.reward * MEDAL_PAY[medal]) : 0;
           G.addMoney(pay);
@@ -280,10 +286,42 @@ export function createActivities(G) {
     next();
   }
 
+  function startHunt(e) {
+    if (needVehicle()) return;
+    toStart(e.start);
+    const h = e.start.heading, x = e.start.x + Math.cos(h) * 70, z = e.start.z - Math.sin(h) * 70;
+    const target = G.fleet.spawn({ model: 'comet', color: '#2f9e44', pos: { x, y: 0, z }, heading: h, role: 'mission-target' });
+    target.reset(x, z, h);
+    const out = route({ x, z }, { x: 600, z: 600 }), back = route({ x: 600, z: 600 }, { x, z });
+    target.ai = routeAI([...out, ...back.slice(1)], { latG: 7, maxSpeed: 34, loop: true, avoid: true });
+    const act = { kind: 'event', id: e.id, name: e.name, t: 0 };
+    G.activity = act;
+    G.hud.objective(`${e.name}: wreck the green Comet before time runs out`);
+    setCp(x, z, 0x2f9e44, 10);
+    countdown(act, () => {});
+    act.update = dt => {
+      act.tick(dt);
+      if (!act.go) return;
+      act.t += dt;
+      const p = target.body.translation();
+      cp.set(p.x, p.z);
+      G.hud.info(`Target ${Math.round(target.speedKmh)} km/h · ${Math.round(target.health * 100)}% health · ${Math.max(0, e.time - act.t).toFixed(1)} s`);
+      if (target.dead) {
+        G.addMoney(e.reward);
+        G.save.best[e.id] = Math.min(act.t, G.save.best[e.id] ?? 1e9);
+        return finish(act, true, 'TARGET DOWN', `+$${e.reward}`);
+      }
+      if (act.t > e.time) return finish(act, false, 'OUT OF TIME', 'The target got away');
+      if (G.player.mode !== 'car') { act.away = (act.away || 0) + dt; if (act.away > 12) return finish(act, false, 'EVENT FAILED', 'You left your vehicle'); }
+      else act.away = 0;
+    };
+    act.cleanup = () => setTimeout(() => { if (target !== G.player.vehicle) G.fleet.remove(target); }, 4000);
+  }
+
   return {
     startEvent(e) {
       if (G.activity) return;
-      ({ race: startRace, timetrial: startRace, drift: startDrift, drag: startDrag, pursuit: startPursuit })[e.type](e);
+      ({ race: startRace, timetrial: startRace, delivery: startRace, drift: startDrift, drag: startDrag, pursuit: startPursuit, hunt: startHunt })[e.type](e);
     },
     startMission(m) { if (!G.activity) startMission(m); },
     update(dt) { G.activity?.update(dt); },

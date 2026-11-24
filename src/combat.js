@@ -58,6 +58,7 @@ export function createCombat(G) {
       const h = res.human, dx = h.x - from.x, dz = h.z - from.z, L = Math.hypot(dx, dz) || 1;
       const wasCop = h.role === 'cop', wasGang = h.role === 'gang';
       const killed = G.humans.hurt(h, dmg, dmg >= 30 ? { x: (dx / L) * 3, y: 2.5, z: (dz / L) * 3 } : null, byPlayer ? 'player' : null);
+      G.glow.emit(res.point.x, res.point.y, res.point.z, 0, 0.4, 0, 0.22, 0, 0.1, 0xffb070, 0.5);
       if (byPlayer) {
         G.wanted.crime(wasCop ? (killed ? 'killCop' : 'hitCop') : wasGang ? 'gang' : killed ? 'killPed' : 'hitPed');
         if (killed) G.onKill?.(h);
@@ -79,7 +80,7 @@ export function createCombat(G) {
     const fx = Math.cos(yaw), fz = -Math.sin(yaw);
     const consider = (x, y, z, w, ref) => {
       const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz);
-      if (d > range || d < 0.5) return;
+      if (d > range || d < 0.5 || G.rayBlocked(o.x, o.y, o.z, x, y, z)) return;
       const ang = Math.acos(Math.max(-1, Math.min(1, (dx * fx + dz * fz) / d)));
       if (!anyDir && ang > cone) return;
       const score = d * (1 + ang) * w;
@@ -88,7 +89,7 @@ export function createCombat(G) {
     for (const h of G.humans.list) {
       if (h.role === 'player' || !h.visible || h.state === 'dead') continue;
       const hostile = (h.role === 'cop' && G.wanted.stars > 0) || (h.role === 'gang' && h.hostile);
-      consider(h.x, h.y + (h.state === 'down' ? 0.25 : 1.2), h.z, hostile ? 0.4 : 1, h);
+      consider(h.x, h.y + (h.state === 'down' ? 0.25 : 1.2), h.z, hostile ? 0.25 : 1, h);
     }
     if (G.wanted.stars > 0) for (const v of G.fleet.list) if (v.spec.police && !v.dead) { const p = v.body.translation(); consider(p.x, p.y + 0.3, p.z, 0.8, v); }
     return best;
@@ -130,6 +131,7 @@ export function createCombat(G) {
     tracer(o, res.point);
     G.glow.emit(o.x + d.x * 0.4, o.y + d.y * 0.4, o.z + d.z * 0.4, 0, 0, 0, 0.5, 0, 0.05, 0xffd27a, 1);
     G.audio?.gun(P.weapon, 0);
+    G.rig?.kick(P.weapon === 'smg' ? 0.035 : 0.07);
     applyHit(res, w.dmg, true, o);
     if (G.clock - lastShootCrime > 1.5) { lastShootCrime = G.clock; G.wanted.crime('shoot'); G.humans.panicAround(o.x, o.z, 45); }
   }
@@ -139,7 +141,9 @@ export function createCombat(G) {
     const o = { x: h.x + Math.cos(h.yaw) * 0.4, y: h.y + 1.35, z: h.z - Math.sin(h.yaw) * 0.4 };
     const d = new THREE.Vector3(tgt.x - o.x, tgt.y - o.y, tgt.z - o.z), dist = d.length();
     d.normalize();
-    const miss = Math.random() > (tgt.vehicle ? 0.45 : 0.35);
+    // Accuracy falls off with range and rises with heat; still never a laser.
+    const hitChance = Math.max(0.2, Math.min(0.55, 0.58 - dist * 0.012 + (tgt.vehicle ? 0.05 : 0) + G.wanted.stars * 0.03));
+    const miss = Math.random() > hitChance;
     if (miss) { d.x += (Math.random() - 0.5) * 0.2; d.y += Math.random() * 0.08; d.z += (Math.random() - 0.5) * 0.2; d.normalize(); }
     const res = trace(o, d, 60, h);
     tracer(o, res.point);

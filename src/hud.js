@@ -47,7 +47,7 @@ export function renderMapImage() {
 
 // Icons shared by the minimap and the full map.
 const POI_ICON = { garage: ['G', '#3ddc84'], spray: ['S', '#3aa0ff'], dealer: ['C', '#b06cff'], arms: ['A', '#ff8a3a'], shop: ['$', '#e05252'], bank: ['B', '#4a7bd0'], police: ['P', '#3355aa'], hospital: ['H', '#e8e8e8'], atm: ['$', '#0e7c66'] };
-const EVENT_ICON = { race: ['R', '#ff3b3b'], timetrial: ['T', '#31e1ff'], drift: ['D', '#ff4fd8'], drag: ['Q', '#ff9f1a'], pursuit: ['!', '#4f7bff'] };
+const EVENT_ICON = { race: ['R', '#ff3b3b'], timetrial: ['T', '#31e1ff'], drift: ['D', '#ff4fd8'], drag: ['Q', '#ff9f1a'], pursuit: ['!', '#4f7bff'], delivery: ['P', '#8ce063'], hunt: ['X', '#ff5050'] };
 export function blips(G, full) {
   const out = [];
   for (const p of POIS) if (full || !['atm', 'shop'].includes(p.type)) out.push({ x: p.x, z: p.z, icon: POI_ICON[p.type], label: p.label });

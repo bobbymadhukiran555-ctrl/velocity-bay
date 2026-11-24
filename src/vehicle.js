@@ -176,7 +176,9 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
 
     state.braking = brake > 0;
     if (state.braking) force = 0;
-    const coast = throttle === 0 && !state.braking ? 1.2 * k : 0, grip = stats.grip * env.grip * (v.tiresPopped ? 0.45 : 1);
+    // Loose ground costs grip and drags the car down; tarmac lets it coast.
+    const loose = (env.surface ?? 1) < 0.9;
+    const coast = throttle === 0 && !state.braking ? (loose ? 4 : 1.2) * k : 0, grip = stats.grip * env.grip * (v.tiresPopped ? 0.45 : 1);
     for (let i = 0; i < 4; i++) {
       const front = i < 2;
       ctl.setWheelEngineForce(i, front ? 0 : force / 2);

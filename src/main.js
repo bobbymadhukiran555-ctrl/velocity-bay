@@ -18,6 +18,7 @@ import { createActivities } from './activities.js';
 import { createMenus } from './menus.js';
 import { HOLD } from './ai.js';
 import { loadSave, writeSave } from './logic/save.js';
+import { bump, checkAchievements } from './logic/achievements.js';
 import { nearestRoadPoint, SEA_LEVEL, heightAt, zoneAt } from './logic/map.js';
 import { DAY_LENGTH_S } from './logic/daynight.js';
 import { createWeather } from './logic/weather.js';
@@ -58,7 +59,15 @@ async function boot() {
     mods: {}, gps: { target: null, route: null, dirty: false, timer: 0 }, activity: null,
     get money() { return save.money; }, set money(v) { save.money = v; },
   };
-  G.addMoney = n => { save.money = Math.max(0, Math.round(save.money + n)); };
+  G.statsProgress = (key, amount = 1) => {
+    bump(save.stats, key, amount);
+    for (const a of checkAchievements(save.stats, save.achievements)) {
+      save.money += a.reward;
+      G.hud?.toast(`Achievement: ${a.name}  +$${a.reward}`, 4);
+      G.audio?.cash?.();
+    }
+  };
+  G.addMoney = n => { save.money = Math.max(0, Math.round(save.money + n)); if (n > 0) bump(save.stats, 'earned', n); };
   window.__game = G; // console debugging aid
 
   setStatus('Building Velocity Bay…');
@@ -125,7 +134,8 @@ async function boot() {
   const snapshot = () => {
     const t = P.target(), heading = P.vehicle ? P.vehicle.heading : P.yaw;
     return { v: 2, money: save.money, pos: { x: t.x, y: t.y + 0.5, z: t.z }, heading, time: G.t01, garage: save.garage, current: save.current,
-      weapons: { bat: P.weapons.bat, pistol: P.weapons.pistol, smg: P.weapons.smg }, missions: save.missions, stunts: save.stunts, best: save.best, settings: G.settings };
+      weapons: { bat: P.weapons.bat, pistol: P.weapons.pistol, smg: P.weapons.smg }, missions: save.missions, stunts: save.stunts, best: save.best,
+      stats: save.stats, achievements: save.achievements, settings: G.settings };
   };
   const persist = () => { if (!P.dead && !G.activity) writeSave(localStorage, snapshot()); else writeSave(localStorage, { ...snapshot(), pos: save.pos }); };
 
@@ -199,8 +209,8 @@ async function boot() {
     if (G.bag > 0) { G.addMoney(G.bag); G.hud.banner('CLEAN GETAWAY', `+$${G.bag.toLocaleString()}`, 'good'); G.audio.cash(); G.bag = 0; }
     else G.hud.toast('You lost the cops');
   };
-  G.onKill = h => G.activity?.onKill?.(h);
-  G.onRobbed = p => G.activity?.onRobbed?.(p);
+  G.onKill = h => { G.activity?.onKill?.(h); G.statsProgress('kills'); };
+  G.onRobbed = p => { G.activity?.onRobbed?.(p); G.statsProgress('robberies'); };
 
   // Start in your current car.
   const mine = save.garage[save.current];
@@ -226,7 +236,7 @@ async function boot() {
   document.getElementById('fps').hidden = !G.settings.showFps;
 
   const resetToRoad = () => { if (!P.vehicle) return; const p = P.vehicle.body.translation(), r = nearestRoadPoint(p.x, p.z); P.vehicle.reset(r.x, r.z, r.heading); G.rig.snap(); };
-  let stuckTime = 0;
+  let stuckTime = 0, lastDrive = null;
 
   function edges() {
     if (G.menus.open) return;
@@ -274,6 +284,13 @@ async function boot() {
     G.camYaw = Math.atan2(-camDir.z, camDir.x);
     document.body.classList.toggle('on-foot', P.mode === 'foot');
     const dt = G.paused ? 0 : raw * G.timeScale * (G.mods.slowmo ? 0.35 : 1);
+    const driven = P.mode === 'car' && P.vehicle && !G.paused ? P.vehicle : null;
+    if (driven) {
+      const p = driven.body.translation();
+      if (lastDrive) G.statsProgress('distance', Math.min(2, Math.hypot(p.x - lastDrive.x, p.z - lastDrive.z)));
+      lastDrive = { x: p.x, z: p.z };
+      G.statsProgress('topSpeed', driven.speedKmh);
+    } else lastDrive = null;
     let n = 0;
     if (!G.paused) {
       acc += dt;

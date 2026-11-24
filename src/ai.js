@@ -132,6 +132,18 @@ function laneInput(G, v, ai, dt) {
   }
   const gap = gapAhead(G, v);
   if (gap < 30) target = Math.min(target, Math.max(0, (gap - 5) * 0.8));
+  // Ease around a slow car when the neighbouring lane is free, instead of queuing forever.
+  if (gap < 18 && sp > 4) {
+    const t = lookahead(ai, 8 + sp * 0.5), dx = t.x - p.x, dz = t.z - p.z, L = Math.hypot(dx, dz) || 1;
+    const side = ai.passSide ??= Math.random() < 0.5 ? -1 : 1;
+    const ox = (-dz / L) * side * 2.8, oz = (dx / L) * side * 2.8;
+    const clear = G.fleet.list.every(o => {
+      if (o === v) return true;
+      const q = o.body.translation();
+      return Math.hypot(q.x - (p.x + ox), q.z - (p.z + oz)) > 5 || Math.hypot(q.x - p.x, q.z - p.z) > 22;
+    });
+    if (clear) return driveTo(v, t.x + ox, t.z + oz, Math.max(target, 13), false);
+  }
   ai.blockedBy = gap < 8 ? (ai.blockedBy ?? 0) + dt : 0;
   v.state.horn = ai.blockedBy > 2.5 && ai.blockedBy % 3 < 0.4;
   const t = lookahead(ai, 4 + sp * 0.4);
@@ -175,7 +187,10 @@ function pursuitInput(G, v, ai, dt) {
     const tv = tgt.vehicle ? tgt.vehicle.body.linvel() : { x: 0, z: 0 };
     const onFoot = !tgt.vehicle;
     if (onFoot && d < 14) return HOLD;
-    return driveTo(v, tgt.x + tv.x * 0.45, tgt.z + tv.z * 0.45, onFoot ? 6 : 45, d > 15);
+    // Stagger the approach so units don't stack in one line behind the player.
+    const vl = Math.hypot(tv.x, tv.z) || 1, side = ((v.id % 3) - 1) * 2.4;
+    const px = -tv.z / vl, pz = tv.x / vl;
+    return driveTo(v, tgt.x + tv.x * 0.45 + px * side, tgt.z + tv.z * 0.45 + pz * side, onFoot ? 6 : 48, d > 15);
   }
   if ((ai.timer -= dt) <= 0 || ai.pts.length < 2) {
     ai.timer = 1.5;

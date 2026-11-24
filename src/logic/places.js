@@ -45,6 +45,9 @@ export const EVENTS = [
     targets: [20000, 10000, 4000], reward: 2500 },
   { id: 'drag-runway', type: 'drag', name: 'Runway Drag', start: { x: -1018, z: 620, heading: N }, length: 800, reward: 1500 },
   { id: 'pursuit', type: 'pursuit', name: 'Hot Pursuit', start: { x: 300, z: 600, heading: W }, stars: 3, time: 90, reward: 2000 },
+  { id: 'delivery-docks', type: 'delivery', name: 'Dock Express', start: { x: 600, z: 100, heading: N }, time: 75,
+    checkpoints: [[600, -200], [200, -600], [-200, -600], [-556, -556]], reward: 1800 },
+  { id: 'hunt-ring', type: 'hunt', name: 'Headhunter', start: { x: 300, z: 600, heading: W }, time: 90, reward: 2500 },
 ];
 
 export const SPEED_CAMS = [[600, -100], [-600, 300], [0, -660], [300, 710], [-750, 0], [700, 0]].map(([x, z], i) => ({ id: `cam-${i}`, x, z }));

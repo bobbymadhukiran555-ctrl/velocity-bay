@@ -16,7 +16,9 @@ Then open http://localhost:5173. Add `?q=low` or `?q=high` to the URL to change 
 - **Living city**: traffic that follows lanes and traffic lights, pedestrians, street lights, breakable props, dynamic weather (clear, cloudy, fog, rain, storm with lightning, wet roads), day and night.
 - **Crime** (turn off in Settings for racing only): walk around, carjack, fists/bat/pistol/SMG and drive-bys, 1–5 wanted stars, police pursuit, cops on foot, roadblocks with spike strips, helicopter, armoured trucks, busted/wasted, robbing stores, ATMs and the bank, gang turf.
 - **Career**: money, garage, car dealer, car selector (V), upgrades and paint, Spray & Fix, Arms Depot, 6 story missions, GPS route, full map (M).
-- **Events**: street races vs AI, time trial, drift, drag race, hot pursuit, speed cameras, stunt jumps.
+- **Events**: street races vs AI, time trial, timed delivery, headhunter (wreck a fleeing car), drift, drag race, hot pursuit, speed cameras, stunt jumps.
+- **Career stats**: distance, top speed, jumps, events, takedowns, robberies and earnings, with 9 achievements that pay cash (pause → Stats & achievements).
+- **Roads**: tarmac, dirt and sand have different grip; the textures now include wear, cracks, manholes and normal/roughness detail.
 - **Extras**: photo mode (P), procedural radio with 3 stations (N), mod menu (F2), save codes to move progress between devices.
 
 ## Controls

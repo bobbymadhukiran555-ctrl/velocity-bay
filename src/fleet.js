@@ -4,6 +4,7 @@ import { aiInput, laneAI, HOLD } from './ai.js';
 import { SAMPLES, along, GRAPH } from './logic/roadgraph.js';
 import { TRAFFIC_MODELS, TRAFFIC_COLORS, MODELS } from './logic/vehicles.js';
 import { wetGrip } from './logic/weather.js';
+import { surfaceGrip } from './logic/surface.js';
 import { vehicleFx } from './fx.js';
 import { CITY } from './logic/map.js';
 
@@ -111,7 +112,8 @@ export function createFleet(G) {
         const mine = v === G.player.vehicle && G.player.mode === 'car';
         const input = mine ? (G.player.dead ? HOLD : playerInput) : v.ai ? aiInput(G, v, dt) : HOLD;
         v.god = mine && G.mods.god;
-        v.step(dt, input, { grip: grip * (mine && G.mods.superGrip ? 1.5 : 1), power: mine && G.mods.superPower ? 2.2 : 1, infiniteNitro: mine && G.mods.infNitro });
+        const p = v.body.translation(), surface = surfaceGrip(p.x, p.z);
+        v.step(dt, input, { grip: grip * surface * (mine && G.mods.superGrip ? 1.5 : 1), power: mine && G.mods.superPower ? 2.2 : 1, infiniteNitro: mine && G.mods.infNitro, surface });
       }
     },
     postStep() { for (const v of list) v.snap(); },

@@ -25,8 +25,10 @@ export function createPolice(G) {
 
   function spawnUnit(armoured) {
     const P = G.focus;
+    // Pick from road samples near the player, not a uniform random pick from the whole map.
+    const near = SAMPLES.filter(s => { const d = Math.hypot(s.x - P.x, s.z - P.z); return d > 140 && d < 260 && !G.inView(s.x, s.z); });
     for (let t = 0; t < 15; t++) {
-      const s = pick(SAMPLES), sp = G.fleet.spotOn(s), d = Math.hypot(sp.x - P.x, sp.z - P.z);
+      const s = pick(near.length ? near : SAMPLES), sp = G.fleet.spotOn(s), d = Math.hypot(sp.x - P.x, sp.z - P.z);
       if (d < 140 || d > 260 || G.inView(sp.x, sp.z)) continue;
       const v = G.fleet.spawn({ model: armoured ? 'bulwark' : 'patrol', color: armoured ? '#1b2433' : '#f2f2f2', pos: { x: sp.x, y: 0, z: sp.z }, heading: sp.heading, role: 'police' });
       v.reset(sp.x, sp.z, sp.heading);
