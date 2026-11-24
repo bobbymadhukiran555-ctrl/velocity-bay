@@ -125,6 +125,15 @@ export const ROAD_PROFILES = ROADS.filter(r => r.kind === 'road').map(road => {
       return s / c;
     });
   }
+  // Pin both ends to the terrain, then taper inward so roads that meet share a height.
+  // Without this, a road descending from the mountains ends tens of metres above the desert road it joins.
+  const pin = (at, step) => {
+    ys[at] = Math.max(SEA_LEVEL + 1, naturalHeight(pts[at].x, pts[at].z));
+    for (let k = at + step; k >= 0 && k < ys.length; k += step) {
+      ys[k] = Math.min(ys[k - step] + MAX_RISE, Math.max(ys[k - step] - MAX_RISE, ys[k]));
+    }
+  };
+  if (!road.closed) { pin(0, 1); pin(ys.length - 1, -1); }
   return { road, closed: !!road.closed, pts: pts.map((p, i) => ({ ...p, y: Math.max(SEA_LEVEL + 1, ys[i]) })) };
 });
 

@@ -19,21 +19,24 @@ export function buildCoaster(scene, RAPIER, world) {
   const controls = COASTER_POINTS.map(([x, z, y]) => new THREE.Vector3(x, y, z));
   const curve = new THREE.CatmullRomCurve3(controls, false, 'centripetal');
   const N = 260, half = COASTER_WIDTH / 2;
-  const pos = [], uv = [], idx = [], railPos = [], railIdx = [], centers = [], ups = [];
-  const p = new THREE.Vector3(), fwd = new THREE.Vector3(), up = new THREE.Vector3(), side = new THREE.Vector3();
-  const ta = new THREE.Vector3(), tb = new THREE.Vector3();
+  const pos = [], uv = [], idx = [], railPos = [], railIdx = [], centers = [], ups = [], fwds = [], banks = [];
+  const up = new THREE.Vector3(), side = new THREE.Vector3();
 
   for (let i = 0; i <= N; i++) {
     const t = i / N;
-    curve.getPointAt(t, p);
-    curve.getTangentAt(t, fwd).normalize();
-    curve.getTangentAt(Math.max(0, t - 0.003), ta);
-    curve.getTangentAt(Math.min(1, t + 0.003), tb);
-    const turn = ta.x * tb.z - ta.z * tb.x; // signed curvature
-    const bank = Math.max(-0.28, Math.min(0.28, turn * 8));
-    up.set(0, 1, 0).applyAxisAngle(fwd, bank);
+    centers.push(curve.getPointAt(t, new THREE.Vector3()));
+    fwds.push(curve.getTangentAt(t, new THREE.Vector3()).normalize());
+    const a = curve.getTangentAt(Math.max(0, t - 0.003), new THREE.Vector3());
+    const b = curve.getTangentAt(Math.min(1, t + 0.003), new THREE.Vector3());
+    banks.push(Math.max(-0.28, Math.min(0.28, (a.x * b.z - a.z * b.x) * 8)));
+  }
+  // Average the bank over a few samples so the roll eases in and out instead of snapping.
+  const bank = banks.map((_, i) => (banks[Math.max(0, i - 2)] + 2 * banks[i] + banks[Math.min(N, i + 2)]) / 4);
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, p = centers[i], fwd = fwds[i];
+    up.set(0, 1, 0).applyAxisAngle(fwd, bank[i]);
     side.crossVectors(fwd, up).normalize();
-    centers.push(p.clone()); ups.push(up.clone());
+    ups.push(up.clone());
     pos.push(p.x - side.x * half, p.y - side.y * half, p.z - side.z * half,
              p.x + side.x * half, p.y + side.y * half, p.z + side.z * half);
     uv.push(0, t * 50, 1, t * 50);

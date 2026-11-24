@@ -32,6 +32,23 @@ test('road profiles are drivable (no grade over 22%)', () => {
     }
 });
 
+test('roads that meet share a height (no cliffs at junctions)', () => {
+  const cell = 16, grid = new Map(), pts = [];
+  for (const prof of ROAD_PROFILES) for (let i = 0; i < prof.pts.length; i += 2) {
+    const p = prof.pts[i], q = { x: p.x, z: p.z, y: p.y, name: prof.road.name };
+    pts.push(q);
+    const k = `${Math.floor(p.x / cell)},${Math.floor(p.z / cell)}`;
+    if (!grid.has(k)) grid.set(k, []);
+    grid.get(k).push(q);
+  }
+  for (const p of pts) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+    for (const q of grid.get(`${Math.floor(p.x / cell) + dx},${Math.floor(p.z / cell) + dz}`) || []) {
+      if (q.name === p.name || Math.hypot(p.x - q.x, p.z - q.z) > 6) continue;
+      assert.ok(Math.abs(p.y - q.y) < 1.5, `${p.name} meets ${q.name} at ${Math.round(p.x)},${Math.round(p.z)} with a ${Math.abs(p.y - q.y).toFixed(1)} m step`);
+    }
+  }
+});
+
 test('nearest road point from far outside is inside the map', () => {
   const p = nearestRoadPoint(5000, 5000);
   assert.ok(Math.abs(p.x) < MAP_HALF && Math.abs(p.z) < MAP_HALF);

@@ -172,22 +172,40 @@ export function buildStreets(G) {
   // ---- Ramps ----
   const rampMats = { stunt: new THREE.MeshStandardMaterial({ map: stripes('#f2c200', '#111'), roughness: 0.6 }), plain: new THREE.MeshStandardMaterial({ map: stripes('#8d8b86', '#6d6b66'), roughness: 0.8 }) };
   for (const r of RAMPS) {
-    const L = r.len / 2, W = r.width / 2, H = r.height;
-    const verts = [[-L, 0, -W], [L, 0, -W], [L, H, -W], [-L, 0, W], [L, 0, W], [L, H, W]];
+    const L = r.len / 2, W = r.width / 2, H = r.height, SEG = 12;
+    const verts = [], uv = [], tri = [];
+    // Smoothstep height: flat where it meets the road and flat at the lip, no sudden angle change.
+    for (let i = 0; i <= SEG; i++) {
+      const t = i / SEG, x = -L + 2 * L * t, h = H * t * t * (3 - 2 * t);
+      verts.push([x, 0, -W], [x, h, -W], [x, 0, W], [x, h, W]);
+      uv.push(t * r.len / 4, 0, t * r.len / 4, 0, t * r.len / 4, r.width / 4, t * r.len / 4, r.width / 4);
+      if (i === SEG) continue;
+      const a = i * 4, b = a + 4;
+      tri.push(a + 1, b + 1, b + 3, a + 1, b + 3, a + 3); // driving surface
+      tri.push(a, a + 1, b + 1, a, b + 1, b); // left side
+      tri.push(a + 2, b + 3, a + 3, a + 2, b + 2, b + 3); // right side
+      tri.push(a, b, b + 2, a, b + 2, a + 2); // underside
+    }
+    tri.push(0, 2, 3, 0, 3, 1);
+    const e = SEG * 4;
+    tri.push(e, e + 1, e + 3, e, e + 3, e + 2);
     const g = new THREE.BufferGeometry();
-    const tri = [0, 3, 5, 0, 5, 2, 0, 2, 1, 3, 4, 5, 1, 2, 5, 1, 5, 4, 0, 1, 4, 0, 4, 3];
-    const pos = [], uv = [];
-    for (const i of tri) { pos.push(...verts[i]); uv.push((verts[i][0] + L) / 4, (verts[i][2] + W) / 4); }
+    const pos = verts.flat();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(tri);
     g.computeVertexNormals();
     const y = Math.min(heightAt(r.x, r.z), heightAt(r.x - Math.cos(r.heading) * L, r.z + Math.sin(r.heading) * L)) - 0.05;
     const mesh = new THREE.Mesh(g, r.stunt ? rampMats.stunt : rampMats.plain);
     mesh.position.set(r.x, y, r.z); mesh.rotation.y = r.heading; mesh.castShadow = mesh.receiveShadow = true;
     scene.add(mesh);
     mesh.updateMatrixWorld();
-    const world3 = new Float32Array(verts.flatMap(p => V.set(...p).applyMatrix4(mesh.matrixWorld).toArray()));
-    world.createCollider(RAPIER.ColliderDesc.convexHull(world3).setFriction(0.9));
+    const worldPos = new Float32Array(pos.length);
+    for (let i = 0; i < verts.length; i++) {
+      const p = V.set(...verts[i]).applyMatrix4(mesh.matrixWorld);
+      worldPos.set([p.x, p.y, p.z], i * 3);
+    }
+    world.createCollider(RAPIER.ColliderDesc.trimesh(worldPos, new Uint32Array(tri)).setFriction(0.9));
     r.y = y;
   }
 
