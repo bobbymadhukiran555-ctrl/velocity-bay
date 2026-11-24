@@ -52,10 +52,10 @@ test('out-of-bounds or NaN position falls back to defaults', () => {
 
 test('save round-trips', () => {
   const s = fakeStorage();
-  writeSave(s, { ...DEFAULT_SAVE, money: 1234, gearMode: 'manual' });
+  writeSave(s, { v: 1, money: 1234, gearMode: 'manual' }); // a v1 save
   const got = loadSave(s);
   assert.equal(got.money, 1234);
-  assert.equal(got.gearMode, 'manual');
+  assert.equal(got.settings.gearMode, 'manual'); // v1 field migrates into settings
 });
 
 test('storage that throws still loads defaults', () => {

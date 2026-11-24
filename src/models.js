@@ -1,0 +1,166 @@
+// Procedural meshes for every vehicle, the helicopter and people. All original shapes, built once and shared.
+import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { MODELS } from './logic/vehicles.js';
+
+// Side profiles. x values are fractions of half the length (+ = front), y values are metres above the ground.
+const STYLES = {
+  coupe:  { sill: 0.32, tailLow: 0.62, tail: 0.9,  belt: 0.95, deckR: -0.57, deckF: 0.43, noseTop: 0.8,  nose: 0.62, cab: [-0.57, -0.30, 0.11, 0.44], roof: 1.32 },
+  sedan:  { sill: 0.32, tailLow: 0.6,  tail: 0.95, belt: 0.98, deckR: -0.62, deckF: 0.38, noseTop: 0.86, nose: 0.64, cab: [-0.62, -0.38, 0.12, 0.40], roof: 1.45 },
+  hatch:  { sill: 0.32, tailLow: 0.6,  tail: 1.0,  belt: 0.98, deckR: -0.95, deckF: 0.36, noseTop: 0.86, nose: 0.62, cab: [-0.95, -0.88, 0.05, 0.38], roof: 1.5 },
+  suv:    { sill: 0.48, tailLow: 0.75, tail: 1.15, belt: 1.15, deckR: -0.96, deckF: 0.42, noseTop: 1.05, nose: 0.85, cab: [-0.96, -0.92, 0.12, 0.44], roof: 1.82 },
+  pickup: { sill: 0.48, tailLow: 0.8,  tail: 1.15, belt: 1.15, deckR: -0.95, deckF: 0.45, noseTop: 1.08, nose: 0.88, cab: [-0.14, -0.1, 0.2, 0.47], roof: 1.8 },
+  muscle: { sill: 0.34, tailLow: 0.62, tail: 0.95, belt: 0.98, deckR: -0.66, deckF: 0.22, noseTop: 0.95, nose: 0.72, cab: [-0.66, -0.42, -0.02, 0.24], roof: 1.33 },
+  super:  { sill: 0.28, tailLow: 0.55, tail: 0.85, belt: 0.82, deckR: -0.55, deckF: 0.45, noseTop: 0.6,  nose: 0.45, cab: [-0.55, -0.22, 0.12, 0.52], roof: 1.13, spoiler: true },
+  van:    { sill: 0.5,  tailLow: 0.9,  tail: 1.9,  belt: 1.35, deckR: -0.98, deckF: 0.55, noseTop: 1.25, nose: 1.0,  cab: [0.5, 0.56, 0.64, 0.8], roof: 2.25, box: true },
+};
+
+function colored(geo, hex) {
+  const g = geo.index ? geo.toNonIndexed() : geo, c = new THREE.Color(hex), n = g.attributes.position.count, a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) a.set([c.r, c.g, c.b], i * 3);
+  g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  g.deleteAttribute('uv');
+  return g;
+}
+const box = (w, h, d, x, y, z) => { const g = new THREE.BoxGeometry(w, h, d).translate(x, y, z).toNonIndexed(); g.deleteAttribute('uv'); return g; };
+function extrude(shape, depth, bevel) {
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.8, bevelSegments: 3, curveSegments: 12 });
+  g.translate(0, 0, -depth / 2);
+  g.deleteAttribute('uv');
+  return g;
+}
+const poly = pts => { const s = new THREE.Shape(); pts.forEach(([x, y], i) => (i ? s.lineTo(x, y) : s.moveTo(x, y))); return s; };
+
+function wheelGeo(r, w) {
+  const tire = colored(new THREE.CylinderGeometry(r, r, w, 22).rotateX(Math.PI / 2), 0x141416);
+  const rim = colored(new THREE.CylinderGeometry(r * 0.64, r * 0.64, w + 0.01, 14).rotateX(Math.PI / 2), 0xb8bcc2);
+  const spokes = [0, 1, 2, 3, 4].map(k => colored(new THREE.BoxGeometry(r * 1.2, r * 0.13, w + 0.02).rotateZ((k * Math.PI) / 5), 0x9da2a8));
+  return mergeGeometries([tire, rim, ...spokes]);
+}
+
+const cache = new Map();
+export function vehicleParts(id) {
+  if (cache.has(id)) return cache.get(id);
+  const m = MODELS[id], R = m.wheelR, bodyY = R + 0.28, h = m.len / 2;
+  let parts;
+  if (m.kind === 'bike') parts = bikeParts(m, bodyY);
+  else {
+    const p = STYLES[m.style], [xf, xr] = m.axles, ar = R + 0.1;
+    const s = new THREE.Shape();
+    s.moveTo(h - 0.08, p.sill); s.lineTo(xf + ar, p.sill);
+    s.absarc(xf, R, ar, 0, Math.PI, false);
+    s.lineTo(xr + ar, p.sill);
+    s.absarc(xr, R, ar, 0, Math.PI, false);
+    s.lineTo(-h + 0.08, p.sill + 0.02); s.lineTo(-h, p.tailLow); s.lineTo(-h + 0.06, p.tail);
+    s.lineTo(p.deckR * h, p.belt); s.lineTo(p.deckF * h, p.belt); s.lineTo(h - 0.22, p.noseTop); s.lineTo(h, p.nose); s.lineTo(h - 0.08, p.sill);
+    const [c0, c1, c2, c3] = p.cab.map(f => f * h);
+    const paint = [extrude(s, m.width - 0.16, 0.08)];
+    const glass = extrude(poly([[c0, p.belt - 0.03], [c1, p.roof], [c2, p.roof], [c3, p.belt - 0.03]]), m.width * 0.84, 0.05);
+    paint.push(extrude(poly([[c1 + 0.03, p.roof - 0.03], [c2 - 0.03, p.roof - 0.03], [c2 - 0.06, p.roof + 0.04], [c1 + 0.06, p.roof + 0.04]]), m.width * 0.8, 0.03));
+    if (p.box) paint.push(box(c0 - p.deckR * h + 0.02, p.roof - p.belt, m.width - 0.1, (c0 + p.deckR * h) / 2, (p.roof + p.belt) / 2, 0));
+    if (p.spoiler) paint.push(box(0.3, 0.05, m.width - 0.1, -h + 0.25, p.tail + 0.25, 0), box(0.06, 0.25, 0.06, -h + 0.3, p.tail + 0.12, -0.6), box(0.06, 0.25, 0.06, -h + 0.3, p.tail + 0.12, 0.6));
+    const trim = [colored(glass, 0x0b1118),
+      colored(box(0.08, 0.16, m.width * 0.42, h + 0.01, p.nose - 0.12, 0), 0x0d0d0f),
+      colored(box(0.1, 0.12, m.width - 0.1, h - 0.02, p.sill + 0.04, 0), 0x18191b),
+      colored(box(0.1, 0.12, m.width - 0.1, -h + 0.03, p.sill + 0.05, 0), 0x18191b),
+      colored(box(0.14, 0.08, 0.16, c3 - 0.05, p.belt + 0.04, -m.width / 2 - 0.02), 0x18191b),
+      colored(box(0.14, 0.08, 0.16, c3 - 0.05, p.belt + 0.04, m.width / 2 + 0.02), 0x18191b)];
+    const ly = (p.nose + p.noseTop) / 2, lz = m.width / 2 - 0.32;
+    parts = {
+      paint: mergeGeometries(paint), trim: mergeGeometries(trim),
+      heads: mergeGeometries([-lz, lz].map(z => box(0.06, 0.1, 0.36, h + 0.01, ly, z))),
+      tails: mergeGeometries([-lz, lz].map(z => box(0.06, 0.09, 0.4, -h + 0.03, p.tail - 0.14, z))),
+      lampY: ly, roof: p.roof, impactY: (p.sill + p.belt) / 2,
+    };
+    if (m.police) {
+      parts.barRed = box(0.3, 0.12, 0.5, (c1 + c2) / 2, p.roof + 0.1, -0.28);
+      parts.barBlue = box(0.3, 0.12, 0.5, (c1 + c2) / 2, p.roof + 0.1, 0.28);
+      parts.trim = mergeGeometries([parts.trim, colored(box(c3 - c0, 0.12, m.width + 0.01, (c0 + c3) / 2, p.sill + 0.25, 0), 0x0c1830)]);
+    }
+  }
+  for (const k of ['paint', 'trim', 'heads', 'tails', 'barRed', 'barBlue']) parts[k]?.translate(0, -bodyY, 0);
+  parts.wheel = wheelGeo(R, m.kind === 'bike' ? 0.13 : 0.26);
+  parts.bodyY = bodyY;
+  cache.set(id, parts);
+  return parts;
+}
+
+function bikeParts(m, bodyY) {
+  const [xf, xr] = m.axles, R = m.wheelR;
+  return {
+    paint: mergeGeometries([box(0.62, 0.26, 0.32, 0.12, 0.86, 0), box(0.4, 0.42, 0.34, 0.6, 0.86, 0), box(0.45, 0.14, 0.22, -0.62, 0.94, 0)]),
+    trim: mergeGeometries([
+      colored(box(0.55, 0.1, 0.28, -0.28, 0.9, 0), 0x111111),
+      colored(box(0.5, 0.36, 0.3, 0.02, 0.5, 0), 0x3a3d42),
+      colored(new THREE.CylinderGeometry(0.03, 0.03, 0.75, 6).rotateZ(-0.45).translate((xf + 0.5) / 2 + 0.05, 0.68, 0), 0x9aa0a6),
+      colored(box(0.05, 0.05, 0.7, 0.5, 1.07, 0), 0x111111),
+      colored(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6).rotateZ(1.2).translate((xr - 0.1) / 2, 0.55, 0), 0x9aa0a6),
+      colored(box(0.22, 0.12, 0.3, 0.68, 1.08, 0), 0x0b1118),
+    ]),
+    heads: box(0.05, 0.1, 0.14, 0.8, 0.9, 0),
+    tails: box(0.05, 0.06, 0.16, -0.85, 0.95, 0),
+    lampY: 0.9, roof: 1.1, impactY: 0.7, R,
+  };
+}
+
+const trimMat = new THREE.MeshPhysicalMaterial({ vertexColors: true, metalness: 0.3, roughness: 0.15, clearcoat: 1 });
+const wheelMat = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.55, roughness: 0.45 });
+
+export function buildVehicleMesh(id, color) {
+  const m = MODELS[id], parts = vehicleParts(id);
+  const root = new THREE.Group(), lean = new THREE.Group();
+  root.add(lean);
+  const paintMat = new THREE.MeshPhysicalMaterial({ color, metalness: 0.55, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.08 });
+  const headMat = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xfff4dd, emissiveIntensity: 0.4 });
+  const tailMat = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff1a1a, emissiveIntensity: 0.3 });
+  const paint = new THREE.Mesh(parts.paint, paintMat), trim = new THREE.Mesh(parts.trim, trimMat);
+  paint.castShadow = trim.castShadow = true;
+  lean.add(paint, trim, new THREE.Mesh(parts.heads, headMat), new THREE.Mesh(parts.tails, tailMat));
+  let bar = null;
+  if (parts.barRed) {
+    const r = new THREE.MeshBasicMaterial({ color: 0x330000 }), b = new THREE.MeshBasicMaterial({ color: 0x000033 });
+    lean.add(new THREE.Mesh(parts.barRed, r), new THREE.Mesh(parts.barBlue, b));
+    bar = { r, b };
+  }
+  const visual = m.kind === 'bike' ? [[m.axles[0], 0], [m.axles[1], 0]] : [[m.axles[0], -m.track], [m.axles[0], m.track], [m.axles[1], -m.track], [m.axles[1], m.track]];
+  const wheels = visual.map(([x, z]) => {
+    const steer = new THREE.Group(), spin = new THREE.Mesh(parts.wheel, wheelMat);
+    spin.castShadow = true;
+    steer.position.set(x, -0.3, z);
+    steer.add(spin);
+    lean.add(steer);
+    return { steer, spin, x, z };
+  });
+  return { root, lean, paint, paintMat, headMat, tailMat, wheels, bar, parts };
+}
+
+export function heliMesh() {
+  const g = new THREE.Group();
+  const blue = new THREE.MeshStandardMaterial({ color: 0x1b2a4a, metalness: 0.5, roughness: 0.4 });
+  const white = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, metalness: 0.3, roughness: 0.5 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x0b1118, metalness: 0.4, roughness: 0.1 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1.3, 16, 12).scale(1.7, 1, 1), blue);
+  const glass = new THREE.Mesh(new THREE.SphereGeometry(1.05, 14, 10, 0, Math.PI, 0, Math.PI / 2).scale(1.2, 0.9, 1).rotateZ(-Math.PI / 2).translate(1.1, 0.15, 0), dark);
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 5, 8).rotateZ(Math.PI / 2).translate(-4, 0.3, 0), white);
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.1).translate(-6.3, 0.8, 0), blue);
+  const skids = [-0.8, 0.8].map(z => new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.08, 0.08).translate(0, -1.45, z), dark));
+  const rotor = new THREE.Group();
+  for (const a of [0, Math.PI / 2]) rotor.add(new THREE.Mesh(new THREE.BoxGeometry(10, 0.05, 0.3).rotateY(a), dark));
+  rotor.position.y = 1.45;
+  const tailRotor = new THREE.Group();
+  tailRotor.add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 0.04), dark));
+  tailRotor.position.set(-6.3, 0.9, 0.12);
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 4).translate(-1, 1.2, 0), new THREE.MeshBasicMaterial({ color: 0xff2020 }));
+  g.add(body, glass, tail, fin, ...skids, rotor, tailRotor, beacon);
+  g.traverse(o => (o.castShadow = true));
+  return { root: g, rotor, tailRotor, beacon };
+}
+
+// People: forward = +x, feet at y = 0. Limb geometries pivot at the joint.
+export const HUMAN = {
+  torso: new THREE.BoxGeometry(0.24, 0.62, 0.42).translate(0, 1.16, 0),
+  head: new THREE.SphereGeometry(0.13, 10, 8).translate(0, 1.62, 0),
+  arm: new THREE.BoxGeometry(0.11, 0.6, 0.11).translate(0, -0.3, 0),
+  leg: new THREE.BoxGeometry(0.15, 0.86, 0.15).translate(0, -0.43, 0),
+  hip: 0.86, shoulder: 1.42, hipZ: 0.11, shoulderZ: 0.27,
+};

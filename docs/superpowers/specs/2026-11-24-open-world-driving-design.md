@@ -53,6 +53,12 @@ any other real game or car brand. Everything is original.
 "Racing only" was also ticked. Since you then asked for crime features too, it becomes a
 **setting**: crime on (default) or off for a pure-racing session.
 
+## Added later on your request
+
+- **Dynamic weather**: clear, cloudy, fog, rain and storm drift into each other; wet roads cost grip; lightning and thunder.
+- **Car selector**: V anywhere (when not wanted), the garage and the dealer; live preview, stats, paint, upgrades.
+- **Mod menu** (F2): god mode, infinite ammo/nitro, never wanted, set wanted level, spawn any vehicle, super speed/grip, rainbow paint, weather, time, slow motion, moon gravity, teleports. Not saved.
+
 ## Crime features (added on your request)
 
 - **Carjacking**: pull a driver out of any car; parked cars can be broken into (alarm = more heat).

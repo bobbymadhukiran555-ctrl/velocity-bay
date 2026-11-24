@@ -10,9 +10,18 @@ python3 -m http.server 5173
 
 Then open http://localhost:5173. Add `?q=low` or `?q=high` to the URL to change the graphics quality.
 
+## What's in it
+
+- **Driving**: 8 original cars, a motorbike and two police vehicles; drift, nitro, handbrake, manual gears, tyre smoke, skid marks, dents, fire and explosions, ramps and stunt jumps.
+- **Living city**: traffic that follows lanes and traffic lights, pedestrians, street lights, breakable props, dynamic weather (clear, cloudy, fog, rain, storm with lightning, wet roads), day and night.
+- **Crime** (turn off in Settings for racing only): walk around, carjack, fists/bat/pistol/SMG and drive-bys, 1–5 wanted stars, police pursuit, cops on foot, roadblocks with spike strips, helicopter, armoured trucks, busted/wasted, robbing stores, ATMs and the bank, gang turf.
+- **Career**: money, garage, car dealer, car selector (V), upgrades and paint, Spray & Fix, Arms Depot, 6 story missions, GPS route, full map (M).
+- **Events**: street races vs AI, time trial, drift, drag race, hot pursuit, speed cameras, stunt jumps.
+- **Extras**: photo mode (P), procedural radio with 3 stations (N), mod menu (F2), save codes to move progress between devices.
+
 ## Controls
 
-W/↑ gas · S/↓ brake and reverse · A D/← → steer · Space handbrake · Shift nitro · G auto/manual · Q/E shift · C camera · L lights · R back on the road · T skip an hour · H help
+W/↑ gas · S/↓ brake and reverse · A D steer · Space handbrake/jump · Shift nitro/sprint · F get in/out, use (hold to rob) · K or click shoot · X weapon · H horn · G auto/manual · Q/E shift · C camera · L lights · N radio · R back on the road · T skip an hour · M map · V car selector · P photo mode · F2 mod menu · Esc pause
 
 ## Tests
 

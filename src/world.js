@@ -284,32 +284,40 @@ export function buildWorld(scene, renderer, RAPIER, world, quality) {
   let envRT = null, lastEnvT = -1;
   const sunDir = new THREE.Vector3(), dayFog = new THREE.Color(0xb8c6d4), duskFog = new THREE.Color(0xd99a6c), nightFog = new THREE.Color(0x0b0f18);
 
-  function update(t01, focus) {
+  const grey = new THREE.Color(0x8a9099), WET = new THREE.Color();
+  const CALM = { cloud: 0, fog: 0, rain: 0, wet: 0, flash: 0 };
+  // wx: weather { cloud, fog, rain, wet, flash } from the weather system.
+  function update(t01, focus, wx = CALM) {
     const s = sunState(t01);
-    const up = s.elevation > -0.12;
+    const up = s.elevation > -0.12, overcast = 1 - 0.8 * wx.cloud;
     sunDir.setFromSphericalCoords(1, Math.PI / 2 - s.elevation, s.azimuth);
     su.sunPosition.value.copy(sunDir);
+    su.turbidity.value = 6 + 12 * wx.cloud;
     const lightDir = up ? sunDir : sunDir.clone().negate().setY(Math.abs(sunDir.y) + 0.3).normalize(); // moonlight after dark
     sun.position.copy(focus).addScaledVector(lightDir, 600);
     sun.target.position.copy(focus);
-    sun.intensity = up ? 2.6 * Math.max(0.05, s.daylight) : 0.35;
+    sun.intensity = (up ? 2.6 * Math.max(0.05, s.daylight) : 0.35) * overcast;
     sun.color.setHSL(0.09, up ? 0.9 - 0.8 * s.daylight : 0.3, up ? 0.6 + 0.3 * s.daylight : 0.75);
     if (!up) sun.color.setRGB(0.6, 0.7, 1);
-    hemi.intensity = 0.25 + 0.85 * s.daylight;
+    hemi.intensity = (0.25 + 0.85 * s.daylight) * (1 - 0.35 * wx.cloud) + wx.flash * 1.2;
     const dusk = Math.max(0, 1 - Math.abs(s.elevation) * 6) * (1 - s.daylight * 0.5);
-    scene.fog.color.copy(nightFog).lerp(dayFog, s.daylight).lerp(duskFog, dusk * 0.5);
-    renderer.toneMappingExposure = 0.8 + (1 - s.daylight) * 0.3;
-    starField.material.opacity = Math.max(0, 1 - s.daylight * 3);
+    scene.fog.color.copy(nightFog).lerp(dayFog, s.daylight).lerp(duskFog, dusk * 0.5 * overcast).lerp(grey.clone().multiplyScalar(0.15 + 0.85 * s.daylight), wx.cloud * 0.7);
+    scene.fog.near = 250 + (12 - 250) * wx.fog;
+    scene.fog.far = Math.min(1800 + (160 - 1800) * wx.fog, 1800 + (420 - 1800) * wx.rain);
+    renderer.toneMappingExposure = (0.8 + (1 - s.daylight) * 0.3) * (1 - 0.15 * wx.cloud) + wx.flash * 0.2;
+    starField.material.opacity = Math.max(0, 1 - s.daylight * 3) * (1 - wx.cloud);
     starField.position.copy(focus);
     mats.windows.emissiveIntensity = Math.max(0, 1 - s.daylight * 1.6) * 1.4;
+    for (const m of mats.wet) { m.roughness = 0.82 - 0.4 * wx.wet; m.color.copy(WET.setScalar(1 - 0.45 * wx.wet)); }
     if (Math.abs(t01 - lastEnvT) > 0.004 || lastEnvT < 0) {
       lastEnvT = t01;
       envSky.material.uniforms.sunPosition.value.copy(sunDir);
       envRT?.dispose();
       envRT = pmrem.fromScene(envScene, 0, 1, 10000);
       scene.environment = envRT.texture;
-      scene.environmentIntensity = 0.05 + 0.17 * s.daylight; // the sky is HDR: keep reflections from flooding the shadows
     }
+    scene.environmentIntensity = (0.05 + 0.17 * s.daylight) * (1 - 0.6 * wx.cloud) * (1 + 0.6 * wx.wet); // the sky is HDR: keep reflections from flooding the shadows
+    return s;
   }
-  return { update };
+  return { update, mats };
 }

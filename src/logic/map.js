@@ -55,6 +55,20 @@ function roundedSquare(half, r, perArc = 10) {
   return pts;
 }
 const P = (...xz) => xz.map(([x, z]) => ({ x, z }));
+// Round the corners of a winding road (Chaikin corner cutting, ends kept).
+function smooth(pts, passes = 3) {
+  for (let k = 0; k < passes; k++) {
+    const out = [pts[0]];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      if (i > 0) out.push({ x: a.x * 0.75 + b.x * 0.25, z: a.z * 0.75 + b.z * 0.25 });
+      if (i < pts.length - 2) out.push({ x: a.x * 0.25 + b.x * 0.75, z: a.z * 0.25 + b.z * 0.75 });
+    }
+    out.push(pts[pts.length - 1]);
+    pts = out;
+  }
+  return pts;
+}
 
 const streets = [];
 for (let v = CITY.min; v <= CITY.max; v += CITY.block) {
@@ -69,11 +83,11 @@ export const ROADS = [
   { name: 'south-ave', kind: 'road', width: 16, points: P([0, 405], [0, 595]) },
   { name: 'east-ave', kind: 'road', width: 16, points: P([405, 0], [595, 0]) },
   { name: 'west-ave', kind: 'road', width: 16, points: P([-405, 0], [-595, 0]) },
-  { name: 'mountain-pass', kind: 'road', width: 14, points: P([0, -605], [0, -720], [-110, -800], [-60, -900], [110, -950], [230, -1040], [90, -1110], [-150, -1085], [-320, -1000], [-430, -880], [-560, -770], [-660, -700]) },
-  { name: 'desert-road', kind: 'road', width: 14, points: P([-660, -700], [-790, -640], [-950, -560], [-1050, -440], [-960, -360]) },
+  { name: 'mountain-pass', kind: 'road', width: 14, points: smooth(P([0, -605], [0, -720], [-110, -800], [-60, -900], [110, -950], [230, -1040], [90, -1110], [-150, -1085], [-320, -1000], [-430, -880], [-560, -770], [-660, -700])) },
+  { name: 'desert-road', kind: 'road', width: 14, points: smooth(P([-660, -700], [-790, -640], [-950, -560], [-1050, -440], [-960, -360])) },
   { name: 'airport-road', kind: 'road', width: 16, points: P([-605, 0], [-760, 0], [-900, 0]) },
   { name: 'coast-connector', kind: 'road', width: 16, points: P([0, 605], [0, 700]) },
-  { name: 'coast-road', kind: 'road', width: 16, points: P([-700, 700], [-350, 712], [0, 700], [350, 712], [690, 695], [800, 620]) },
+  { name: 'coast-road', kind: 'road', width: 16, points: smooth(P([-700, 700], [-350, 712], [0, 700], [350, 712], [690, 695], [800, 620])) },
   { name: 'docks-road', kind: 'road', width: 16, points: P([605, 0], [800, 0], [1000, 0]) },
   { name: 'docks-main', kind: 'road', width: 16, points: P([800, -420], [800, 0], [800, 620]) },
 ];
