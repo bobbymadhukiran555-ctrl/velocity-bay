@@ -10,7 +10,7 @@ export const searchTime = stars => 10 + stars * 6; // seconds out of sight to es
 
 export function policeFor(stars) {
   return {
-    cars: [0, 1, 2, 3, 4, 5][stars] ?? 5,
+    cars: [0, 2, 3, 4, 6, 8][stars] ?? 8,
     armoured: stars >= 5 ? 2 : 0,
     roadblocks: stars >= 3,
     heli: stars >= 4,

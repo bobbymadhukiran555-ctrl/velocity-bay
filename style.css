@@ -187,3 +187,9 @@ body.ready #loading-status { animation: pulse 1.6s infinite; }
 #flightkeys span.on { opacity: 1; color: #ffd24a; }
 #flightkeys kbd { display: inline-block; min-width: 30px; text-align: center; padding: 0 6px; margin-right: 6px; border: 1px solid rgba(255,255,255,.5); border-bottom-width: 3px; border-radius: 5px; font: inherit; font-weight: 700; }
 @media (pointer: fine) { body.mode-plane.ready #flightkeys { display: block; } }
+
+/* Speed lines: fade in past ~110 km/h, bluer on nitro */
+#speedfx { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 3;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,255,255,.55) 0 .35deg, transparent .35deg 3.7deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 42%, #000 90%); mask-image: radial-gradient(circle at 50% 50%, transparent 42%, #000 90%); }
+#speedfx.nitro { background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(120,190,255,.7) 0 .35deg, transparent .35deg 3.7deg); }

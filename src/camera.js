@@ -80,7 +80,7 @@ export function createCameraRig(camera) {
       pos.set(m.position.x - Math.cos(yaw) * dist, m.position.y + height, m.position.z + Math.sin(yaw) * dist);
       pos.y = Math.max(pos.y, heightAt(pos.x, pos.z) + 0.8);
       unblock(m.position.x, m.position.y + (target.onFoot ? 0.6 : 1), m.position.z);
-      shake = nitro ? 0.04 : shake * 0.9;
+      shake = nitro ? 0.04 : kmh > 150 ? Math.min(0.025, (kmh - 150) * 0.0003) : shake * 0.9;
       camera.position.lerp(pos, Math.min(1, dt * 12)).add(tmp.set((Math.random() - 0.5) * shake + k, (Math.random() - 0.5) * shake + k, k));
       look.set(m.position.x + Math.cos(yaw) * 3, m.position.y + (target.onFoot ? 0.6 : 1.1), m.position.z - Math.sin(yaw) * 3);
       camera.lookAt(look);

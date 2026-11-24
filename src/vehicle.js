@@ -215,6 +215,7 @@ export function createVehicle(G, { model = 'vanta', color = '#b3122e', pos, head
     ctl.updateVehicle(dt, undefined, GROUP.VEHICLE);
     state.slip = speed > 3 ? Math.min(1, (Math.abs(lv.z) / Math.max(6, speed)) * 2.2 + (state.rpm > wheelRpm * 1.35 && throttle > 0.6 ? 0.35 : 0)) : 0;
     state.slipAngle = speed > 3 ? Math.atan2(lv.z, Math.abs(lv.x)) : 0;
+    if (state.slip > 0.45 && speed > 12 && !state.nitroOn && !v.ai) state.nitro = Math.min(1, state.nitro + dt * 0.07); // drifting charges nitro
     let contact = 0;
     for (let i = 0; i < 4; i++) if (ctl.wheelIsInContact(i)) contact++;
     v.onGround = contact > 0;

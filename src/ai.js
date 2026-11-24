@@ -181,16 +181,26 @@ function routeInput(G, v, ai) {
 
 // ---- Police pursuit: road route to the player, straight at them when close ----
 export function pursuitAI(opts = {}) { return { type: 'pursuit', pts: [], cum: [0], i: 0, timer: 0, stuck: 0, reverse: 0, ...opts }; }
+// Pursuit: three roles so a chase feels like a hunt. Rammers go straight in, PIT cars slot in beside your rear wheel
+// and lean into it, blockers (3+ stars) get ahead and slow down in front of you. Cops speed up the higher your heat, and catch up when left behind.
 function pursuitInput(G, v, ai, dt) {
   const tgt = G.player.target(), p = v.body.translation(), d = Math.hypot(tgt.x - p.x, tgt.z - p.z);
-  if (d < 32) {
+  const stars = G.wanted.stars, top = 46 + stars * 5, cap = top * (d > 90 ? 1.25 : 1), role = v.id % 3;
+  if (d < 38) {
     const tv = tgt.vehicle ? tgt.vehicle.body.linvel() : { x: 0, z: 0 };
     const onFoot = !tgt.vehicle;
     if (onFoot && d < 14) return HOLD;
-    // Stagger the approach so units don't stack in one line behind the player.
-    const vl = Math.hypot(tv.x, tv.z) || 1, side = ((v.id % 3) - 1) * 2.4;
-    const px = -tv.z / vl, pz = tv.x / vl;
-    return driveTo(v, tgt.x + tv.x * 0.45 + px * side, tgt.z + tv.z * 0.45 + pz * side, onFoot ? 6 : 48, d > 15);
+    if (onFoot) return driveTo(v, tgt.x, tgt.z, 6, d > 15);
+    const ps = Math.hypot(tv.x, tv.z), vl = ps || 1, fx = tv.x / vl, fz = tv.z / vl, px = -fz, pz = fx;
+    if (role === 1) { // PIT: beside the rear quarter, then in
+      const side = v.id % 2 ? 1 : -1, off = d > 12 ? 3.2 : 0.9;
+      return driveTo(v, tgt.x - fx * 2.5 + px * side * off, tgt.z - fz * 2.5 + pz * side * off, Math.max(18, ps * 1.12), true);
+    }
+    if (role === 2 && stars >= 3) { // block: get ahead, then brake in front
+      const ahead = (p.x - tgt.x) * fx + (p.z - tgt.z) * fz, front = ahead > 10;
+      return driveTo(v, tgt.x + fx * (front ? 6 : 32), tgt.z + fz * (front ? 6 : 32), front ? Math.max(4, ps * 0.5) : Math.max(cap, ps * 1.2), !front);
+    }
+    return driveTo(v, tgt.x + tv.x * 0.3, tgt.z + tv.z * 0.3, Math.max(cap, ps * 1.15), true); // ram
   }
   if ((ai.timer -= dt) <= 0 || ai.pts.length < 2) {
     ai.timer = 1.5;
@@ -198,7 +208,7 @@ function pursuitInput(G, v, ai, dt) {
   }
   advance(ai, p.x, p.z);
   const sp = Math.max(0, v.state.speed);
-  const target = Math.min(48, bendSpeed(ai, 4 + sp * 0.3, 20 + sp * 1.2, 8.5), bendSpeed(ai, 4 + sp * 1.2, 30 + sp, 8.5));
+  const target = Math.min(cap, bendSpeed(ai, 4 + sp * 0.3, 20 + sp * 1.2, 8.5), bendSpeed(ai, 4 + sp * 1.2, 30 + sp, 8.5));
   const t = lookahead(ai, 5 + sp * 0.5);
   return driveTo(v, t.x, t.z, target, true);
 }

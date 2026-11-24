@@ -4,7 +4,7 @@ import { HUMAN } from './models.js';
 import { CITY, heightAt } from './logic/map.js';
 import { gangAt, GANGS } from './logic/places.js';
 
-const MAX = 90;
+const MAX = 170;
 const SHIRTS = ['#3b5b92', '#a33b3b', '#2f7d4f', '#d9d9d9', '#222', '#8a5a9a', '#c4892f', '#5d6d7e', '#e0c9a6', '#1f6f8b'];
 const PANTS = ['#26303f', '#3a3a3a', '#5b4a36', '#1d2733', '#6b6f75'];
 const SKIN = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac'];
@@ -151,7 +151,7 @@ export function createHumans(G) {
   }
 
   function populate() {
-    const P = G.focus, want = Math.round(26 * G.settings.peds);
+    const P = G.focus, want = Math.round(48 * G.settings.peds);
     let peds = 0;
     for (const h of list) {
       if (h.role === 'player') continue;
@@ -160,7 +160,7 @@ export function createHumans(G) {
       if (h.role === 'ped') peds++;
     }
     if (peds < want && inCity(P.x, P.z) || peds < want / 3) {
-      for (let k = 0; k < 2 && peds < want; k++) {
+      for (let k = 0; k < 4 && peds < want; k++) {
         const a = Math.random() * Math.PI * 2, r = 40 + Math.random() * 120, x = P.x + Math.cos(a) * r, z = P.z + Math.sin(a) * r;
         if (G.inView(x, z) && r < 90) continue;
         if (inCity(x, z)) { if (cityPed(x, z)) peds++; }

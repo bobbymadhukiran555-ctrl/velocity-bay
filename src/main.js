@@ -255,6 +255,7 @@ async function boot() {
     grip);
   viewGun.visible = false; camera.add(viewGun); scene.add(camera);
   let recoil = 0;
+  const speedFx = document.getElementById('speedfx');
   const flightKeys = [...document.querySelectorAll('#flightkeys [data-k]')];
 
   function edges() {
@@ -395,6 +396,9 @@ async function boot() {
     const dark = G.night > 0.55 || w.fog > 0.5 || w.rain > 0.5;
     for (const u of G.fleet.list) if (!u.manualLights && u.driverInside) u.state.headlightsOn = dark;
     const pv = P.mode === 'car' ? P.vehicle : null;
+    const fxKmh = pv && pv.spec.kind !== 'plane' ? pv.speedKmh : 0;
+    speedFx.style.opacity = Math.min(0.55, Math.max(0, (fxKmh - 110) / 220) + (pv?.state.nitroOn ? 0.25 : 0));
+    speedFx.classList.toggle('nitro', !!pv?.state.nitroOn);
     headlights.forEach(l => (l.intensity = pv?.state.headlightsOn ? 260 : 0));
     G.rig.look = input.look();
     G.rig.update(raw, P.camTarget());

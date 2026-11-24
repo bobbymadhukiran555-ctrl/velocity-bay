@@ -85,11 +85,10 @@ export function createFleet(G) {
       if (v.role === 'parked') parked++;
       if (v.role === 'police' && v.ai?.patrol) patrols++;
     }
-    const want = Math.round(14 * G.settings.traffic);
-    if (traffic < want) spawnTraffic();
-    if (traffic < want - 4) spawnTraffic();
+    const want = Math.round(26 * G.settings.traffic);
+    for (let i = 0; i < 3 && traffic + i < want; i++) spawnTraffic();
     const inCity = Math.abs(P.x) < CITY.max + 100 && Math.abs(P.z) < CITY.max + 100;
-    if (inCity && parked < 6 * Math.min(1, G.settings.traffic + 0.3)) spawnParked();
+    if (inCity && parked < 10 * Math.min(1, G.settings.traffic + 0.3)) spawnParked();
     for (const h of HANGAR) if (!list.some(v => v.hangar === h) && Math.hypot(P.x - h.x, P.z - h.z) > 250) {
       const v = spawn({ model: h.model, color: h.color, pos: { x: h.x, y: 2, z: h.z }, heading: Math.PI / 2, role: 'airfield' });
       v.reset(h.x, h.z, Math.PI / 2); v.hangar = h; v.driverInside = false;

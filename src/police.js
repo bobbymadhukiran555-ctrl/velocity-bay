@@ -94,7 +94,7 @@ export function createPolice(G) {
       }
       const chasing = list.filter(v => v.ai?.type === 'pursuit').length;
       if (stars > 0 && chasing < need.cars && (spawnT -= dt) <= 0) {
-        spawnT = 2.5;
+        spawnT = 1.5;
         spawnUnit(list.filter(v => v.model === 'bulwark').length < need.armoured);
       }
       // Speeding right past a patrol car.
